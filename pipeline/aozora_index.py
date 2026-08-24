@@ -107,8 +107,13 @@ def parse_card_page(html: str, card_id: str, person_id: str = PERSON_ID) -> dict
     ルビあり zip が無いカード(外部ホスト等)では ruby_zip_url が None になる。
     その場合の扱いは呼び出し側で external_host 等として明示する(F-02)。
     """
+    # 「分類」は作品データ表にも作家データ表にもある(作家側は「著者」)。
+    # 作品データ表の範囲に限定しないと、作品データに分類が無いカードで作家側を拾う
+    i = html.find("作品データ")
+    j = html.find("作家データ", i + 1) if i >= 0 else -1
+    work_table = html[i:j] if i >= 0 and j > i else html
     rows: dict[str, str] = {}
-    for m in _CARD_ROW.finditer(html):
+    for m in _CARD_ROW.finditer(work_table):
         key = _normalize(_strip_tags(m.group("key")))
         if key and key not in rows:
             rows[key] = _normalize(_strip_tags(m.group("val")))

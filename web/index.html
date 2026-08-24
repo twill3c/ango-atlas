@@ -18,12 +18,16 @@
   <h2>コーパスの現況(実測)</h2>
   <div class="tiles" id="tiles"></div>
 
+  <h2>ジャンルと年代(実測)</h2>
+  <table id="genre"><tbody></tbody></table>
+  <p class="note">
+    ジャンルの出所は NDC 分類と連作題名のみ。NDC 914 は随筆と評論を区別しないので語彙も
+    分けていない。根拠を持てない 25 件は「不明」のまま置いている。
+  </p>
+
   <h2>文字遣いの内訳</h2>
   <table id="kana"><tbody></tbody></table>
-  <p class="note">
-    同一作品に新字新仮名版と新字旧仮名版の両方があるものは、表記だけが異なる対になる。
-    これを「文体特徴量が表記ではなく文体を捉えているか」の検証オラクルに使う(L2 以降)。
-  </p>
+  <p class="note" id="pairnote"></p>
 
   <h2>長い作品</h2>
   <table id="longest"><tbody></tbody></table>
@@ -38,7 +42,7 @@
     <li>リーダー — ルビ付き本文</li>
   </ol>
   <p class="note">
-    現在 L1(取得・パーサー・往復検査)完了時点。設計と検証方針は
+    現在 L2(メタデータ・二重版ペア・仮名遣いの折りたたみ)完了時点。設計と検証方針は
     <a href="https://github.com/twill3c/ango-atlas/blob/main/SPEC.md">SPEC.md</a> を参照。
   </p>
 </main>
@@ -66,6 +70,23 @@ fetch("data/corpus_summary.json").then(r => r.json()).then(d => {
   document.querySelector("#kana tbody").innerHTML = Object.entries(d.kana_type).map(
     ([k, v]) => "<tr><th>" + k + '</th><td class="num">' + fmt(v) + "</td></tr>"
   ).join("");
+  if (d.genre) {
+    const rows = Object.entries(d.genre).map(
+      ([k, v]) => "<tr><th>" + k + '</th><td class="num">' + fmt(v) + "</td></tr>"
+    );
+    rows.push("<tr><th>初出年の範囲</th><td class=\"num\">" + d.year_range[0] + "–" + d.year_range[1] +
+      "(不明 " + d.year_unknown + ")</td></tr>");
+    document.querySelector("#genre tbody").innerHTML = rows.join("");
+  }
+  if (d.pairs) {
+    document.getElementById("pairnote").textContent =
+      "同一作品の新字新仮名版と新字旧仮名版は " + d.pairs.variant + " 組(ほかに同一表記の重複 " +
+      d.pairs.duplicate + " 組)。漢字だけを残した骨格で照合した — 一致群の最小 " +
+      d.pairs.calibration.matched_min.toFixed(3) + " に対し非一致群の最大は " +
+      d.pairs.calibration.unmatched_max.toFixed(3) + " で、間に 1 組も無い。" +
+      "仮名遣いを畳むと本文の一致率は " + d.fold.raw_median + " → " + d.fold.folded_median +
+      " に上がる。この対を「文体特徴量が表記ではなく文体を捉えているか」の検証に使う。";
+  }
   document.querySelector("#longest tbody").innerHTML = d.longest.map(
     (w) => "<tr><th>" + w.title + '</th><td class="num">' + fmt(w.chars) + " 字</td></tr>"
   ).join("");

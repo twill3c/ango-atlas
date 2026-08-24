@@ -151,3 +151,18 @@ def test_t010_translation_card_lives_under_another_person(author_html):
     assert w["card_url"] == "https://www.aozora.gr.jp/cards/001217/card45791.html"
     # 安吾自身の著作は全て 001095 配下
     assert {x["person_id"] for x in works if x["own_work"]} == {"001095"}
+
+
+@pytest.mark.unit
+def test_t014_card_fields_scoped_to_work_table():
+    """T-014 / F-02: 作品データ表に無い項目を作家データ表から拾ってはならない。
+
+    実測(2026-08-25): card61126「迎合せざる人 尾崎士郎の文学」の作品データ表は
+    「文字遣い種別」と「備考」しか持たない。作家データ表には「分類：著者」があるため、
+    表を区別せずに集めると ndc='著者' という誤った値が入る(実測 22 件が該当した)。
+    """
+    html = (FIX / "card61126.html").read_text(encoding="utf-8")
+    meta = ix.parse_card_page(html, card_id="61126")
+    assert meta["ndc"] is None, "作家データ表の『分類：著者』を拾っている"
+    assert meta["shoshutsu"] is None
+    assert meta["kana_type"] == "新字新仮名"

@@ -87,3 +87,12 @@ Conventional Commits(feat/fix/test/docs/refactor/chore)。スキャフォール�
 - `pytest -m validation` は `data/raw` を前提とする。未取得環境では skip される
 - 往復検査(F-04)は原文のバイト列が正解。`.gitattributes` で改行変換を止めているので、
   フィクスチャと `data/raw` を編集・整形してはならない
+
+### 二重版と仮名遣い(L2 実測 2026-08-25)
+
+- 二重版の照合は **漢字骨格 4-gram Jaccard**。題名は当てにならない(14 組が題名違い)
+- 仮名遣いは可読変換せず **`kana_fold.fold` で新旧の双方を対称に畳む**。
+  規則の追加・変更をしたら `python -m pipeline.calibrate_fold` を回し、
+  50 組の一致率が下がっていないかを必ず確認する(T-215 が守る)
+- fold は助詞の は/を も畳む。可読テキストではないので、表示には `data/raw` の原文を使う
+- ジャンルは NDC と連作題名からのみ決める。**「評論」と「随筆」を分けない**(出所が区別しない)
