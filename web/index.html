@@ -3,96 +3,155 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>安吾アトラス</title>
+<title>安吾アトラス — 年表・作品一覧</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-page="index">
 <main>
   <header>
-    <h1>安吾アトラス</h1>
-    <p class="sub">青空文庫 坂口安吾コーパスを、文体・主題・時系列・言及の四軸で俯瞰する</p>
+    <h1><a href="index.html">安吾アトラス</a></h1>
+    <p class="sub">青空文庫 坂口安吾コーパス 513 作品を、文体・主題・時系列で俯瞰する</p>
   </header>
 
-  <p class="note" id="status">コーパス実測を読み込んでいます…</p>
-
-  <h2>コーパスの現況(実測)</h2>
   <div class="tiles" id="tiles"></div>
 
-  <h2>ジャンルと年代(実測)</h2>
-  <table id="genre"><tbody></tbody></table>
+  <h2>年表</h2>
+  <div class="scroll"><svg id="timeline" viewBox="0 0 900 220" role="img"
+       aria-label="初出年ごとの作品数をジャンル別に積み上げた棒グラフ"></svg></div>
+  <div class="legend" id="tlegend"></div>
+
+  <h2>作品一覧</h2>
+  <div class="controls">
+    <input type="search" id="q" placeholder="題名で絞る" size="18">
+    <select id="genre"><option value="">ジャンル(すべて)</option></select>
+    <select id="kana"><option value="">文字遣い(すべて)</option></select>
+    <select id="period"><option value="">時期(すべて)</option></select>
+    <label><input type="checkbox" id="mmonly"> 近傍とジャンルが食い違うものだけ</label>
+    <span class="note" id="count"></span>
+  </div>
+  <div class="scroll"><table id="list">
+    <thead><tr>
+      <th data-sort="t">題名</th><th data-sort="g">ジャンル</th>
+      <th data-sort="y" class="num">初出</th><th data-sort="c" class="num">字数</th>
+      <th data-sort="k">文字遣い</th><th>近傍(文体の近い作品)</th>
+    </tr></thead><tbody></tbody>
+  </table></div>
   <p class="note">
-    ジャンルの出所は NDC 分類と連作題名のみ。NDC 914 は随筆と評論を区別しないので語彙も
-    分けていない。根拠を持てない 25 件は「不明」のまま置いている。
-  </p>
-
-  <h2>文字遣いの内訳</h2>
-  <table id="kana"><tbody></tbody></table>
-  <p class="note" id="pairnote"></p>
-
-  <h2>長い作品</h2>
-  <table id="longest"><tbody></tbody></table>
-
-  <h2>これから作るもの</h2>
-  <ol>
-    <li>年表・作品一覧 — 初出年 × ジャンル × 文字数</li>
-    <li>文体マップ — 文体クラスタとジャンルラベルの食い違いを見せる</li>
-    <li>主題マップ — 主題の推移と、同じ主題の小説版・評論版</li>
-    <li><strong>一節から探す</strong> — 段落を起点に他作品の近傍段落へ渡り歩く</li>
-    <li>転換点 — 文体が変わった年</li>
-    <li>リーダー — ルビ付き本文</li>
-  </ol>
-  <p class="note">
-    現在 L2(メタデータ・二重版ペア・仮名遣いの折りたたみ)完了時点。設計と検証方針は
-    <a href="https://github.com/twill3c/ango-atlas/blob/main/SPEC.md">SPEC.md</a> を参照。
+    「食い違い」は、文体で最も近い 6 作品のうち 4 作品以上が別ジャンルであることを示す。
+    ジャンルは NDC 分類と連作題名だけを出所にしており、随筆と評論は分けていない
+    (出所が区別しないため)。
   </p>
 </main>
-
-<footer>
-  <span>&copy; 2026 twill3c</span>
-  <a href="https://github.com/twill3c/ango-atlas">GitHub</a>
-  <a href="https://app-menu-amber.vercel.app/">App Menu</a>
-</footer>
-
+<script src="nav.js"></script>
 <script>
-const fmt = (n) => n.toLocaleString("ja-JP");
-fetch("data/corpus_summary.json").then(r => r.json()).then(d => {
-  document.getElementById("status").textContent =
-    "取得元 " + d.provenance.author_page + "(" + d.provenance.fetched_at + " 実測)";
-  const tiles = [
-    ["公開中の作品", fmt(d.listed)],
-    ["本文取得", fmt(d.fetched)],
-    ["総文字数", fmt(d.chars_total)],
-    ["最長作品", fmt(d.chars_max) + " 字"],
-  ];
-  document.getElementById("tiles").innerHTML = tiles.map(
-    ([l, n]) => '<div class="tile"><div class="n">' + n + '</div><div class="l">' + l + '</div></div>'
-  ).join("");
-  document.querySelector("#kana tbody").innerHTML = Object.entries(d.kana_type).map(
-    ([k, v]) => "<tr><th>" + k + '</th><td class="num">' + fmt(v) + "</td></tr>"
-  ).join("");
-  if (d.genre) {
-    const rows = Object.entries(d.genre).map(
-      ([k, v]) => "<tr><th>" + k + '</th><td class="num">' + fmt(v) + "</td></tr>"
-    );
-    rows.push("<tr><th>初出年の範囲</th><td class=\"num\">" + d.year_range[0] + "–" + d.year_range[1] +
-      "(不明 " + d.year_unknown + ")</td></tr>");
-    document.querySelector("#genre tbody").innerHTML = rows.join("");
-  }
-  if (d.pairs) {
-    document.getElementById("pairnote").textContent =
-      "同一作品の新字新仮名版と新字旧仮名版は " + d.pairs.variant + " 組(ほかに同一表記の重複 " +
-      d.pairs.duplicate + " 組)。漢字だけを残した骨格で照合した — 一致群の最小 " +
-      d.pairs.calibration.matched_min.toFixed(3) + " に対し非一致群の最大は " +
-      d.pairs.calibration.unmatched_max.toFixed(3) + " で、間に 1 組も無い。" +
-      "仮名遣いを畳むと本文の一致率は " + d.fold.raw_median + " → " + d.fold.folded_median +
-      " に上がる。この対を「文体特徴量が表記ではなく文体を捉えているか」の検証に使う。";
-  }
-  document.querySelector("#longest tbody").innerHTML = d.longest.map(
-    (w) => "<tr><th>" + w.title + '</th><td class="num">' + fmt(w.chars) + " 字</td></tr>"
-  ).join("");
-}).catch((e) => {
-  document.getElementById("status").textContent = "コーパスサマリを読み込めませんでした: " + e;
+const fmt = (n) => (n == null ? "—" : n.toLocaleString("ja-JP"));
+let W = [], BY = {}, SUM = null;
+
+Promise.all([
+  fetch("data/works.json").then((r) => r.json()),
+  fetch("data/corpus_summary.json").then((r) => r.json()),
+]).then(([w, s]) => {
+  W = w.works; SUM = s;
+  BY = Object.fromEntries(W.map((r) => [r.id, r]));
+  tiles(s, w);
+  timeline();
+  fillSelects();
+  render();
 });
+
+function tiles(s, w) {
+  const t = [
+    ["作品数", fmt(s.listed)],
+    ["総字数", fmt(s.chars_total)],
+    ["初出年", s.year_range[0] + "–" + s.year_range[1]],
+    ["二重版", s.pairs.variant + " 組"],
+    ["文体クラスタ", w.k + " 群"],
+  ];
+  if (s.o1) t.push(["二重版が互いに最近傍", s.o1.nearest + "/" + s.o1.n_pairs]);
+  document.getElementById("tiles").innerHTML = t
+    .map(([l, n]) => `<div class="tile"><div class="n">${n}</div><div class="l">${l}</div></div>`)
+    .join("");
+}
+
+const GENRES = ["小説", "随筆・評論", "探偵小説", "巷談・ルポ", "紀行・日記", "戯曲"];
+const GC = { "小説": "var(--c0)", "随筆・評論": "var(--c1)", "探偵小説": "var(--c4)",
+             "巷談・ルポ": "var(--c3)", "紀行・日記": "var(--c2)", "戯曲": "var(--c5)", "不明": "var(--muted)" };
+
+function timeline() {
+  const years = W.filter((r) => r.y).map((r) => r.y);
+  const y0 = Math.min(...years), y1 = Math.max(...years);
+  const cats = GENRES.concat(["不明"]);
+  const counts = {};
+  for (let y = y0; y <= y1; y++) counts[y] = Object.fromEntries(cats.map((c) => [c, 0]));
+  W.forEach((r) => { if (r.y) counts[r.y][r.g || "不明"]++; });
+  const max = Math.max(...Object.values(counts).map((o) => Object.values(o).reduce((a, b) => a + b, 0)));
+  const L = 40, R = 10, T = 10, B = 34, Wd = 900, H = 220;
+  const bw = (Wd - L - R) / (y1 - y0 + 1);
+  let svg = "";
+  for (let y = y0; y <= y1; y++) {
+    let acc = 0;
+    cats.forEach((c) => {
+      const v = counts[y][c];
+      if (!v) return;
+      const h = (H - T - B) * v / max;
+      const yy = H - B - (H - T - B) * (acc + v) / max;
+      acc += v;
+      svg += `<rect x="${(L + (y - y0) * bw).toFixed(1)}" y="${yy.toFixed(1)}" width="${(bw - 1.4).toFixed(1)}" height="${h.toFixed(1)}" fill="${GC[c]}"><title>${y} ${c} ${v} 作</title></rect>`;
+    });
+    if (y % 5 === 0)
+      svg += `<text x="${(L + (y - y0) * bw + bw / 2).toFixed(1)}" y="${H - B + 15}" font-size="10" text-anchor="middle" fill="currentColor" font-family="system-ui">${y}</text>`;
+  }
+  svg += `<line x1="${L}" y1="${H - B}" x2="${Wd - R}" y2="${H - B}" stroke="currentColor" stroke-opacity=".3"/>`;
+  svg += `<text x="4" y="${T + 10}" font-size="10" fill="currentColor" font-family="system-ui">${max} 作</text>`;
+  document.getElementById("timeline").innerHTML = svg;
+  document.getElementById("tlegend").innerHTML = cats
+    .map((c) => `<span><i class="dot" style="background:${GC[c]}"></i>${c}</span>`)
+    .join("");
+}
+
+function fillSelects() {
+  const add = (id, vals) => {
+    const el = document.getElementById(id);
+    vals.forEach((v) => el.insertAdjacentHTML("beforeend", `<option>${v}</option>`));
+    el.onchange = render;
+  };
+  add("genre", GENRES.concat(["不明"]));
+  add("kana", [...new Set(W.map((r) => r.k))]);
+  add("period", [...new Set(W.map((r) => r.pd))]);
+  document.getElementById("q").oninput = render;
+  document.getElementById("mmonly").onchange = render;
+  document.querySelectorAll("th[data-sort]").forEach((th) => {
+    th.style.cursor = "pointer";
+    th.onclick = () => { sortKey = th.dataset.sort; sortAsc = sortKey === lastKey ? !sortAsc : true; lastKey = sortKey; render(); };
+  });
+}
+
+let sortKey = "y", sortAsc = true, lastKey = "y";
+function render() {
+  const q = document.getElementById("q").value.trim();
+  const g = document.getElementById("genre").value;
+  const k = document.getElementById("kana").value;
+  const p = document.getElementById("period").value;
+  const mm = document.getElementById("mmonly").checked;
+  let rows = W.filter((r) =>
+    (!q || r.t.includes(q)) && (!g || (r.g || "不明") === g) &&
+    (!k || r.k === k) && (!p || r.pd === p) && (!mm || r.mm));
+  rows.sort((a, b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (x == null) return 1;
+    if (y == null) return -1;
+    return (x > y ? 1 : x < y ? -1 : 0) * (sortAsc ? 1 : -1);
+  });
+  document.getElementById("count").textContent = rows.length + " 件";
+  document.querySelector("#list tbody").innerHTML = rows.map((r) => `
+    <tr class="${r.mm ? "mm" : ""}">
+      <td><a href="reader.html?w=${r.id}">${r.t}</a></td>
+      <td><span class="chip" style="color:${GC[r.g || "不明"]}">${r.g || "不明"}</span></td>
+      <td class="num">${r.y || "—"}</td><td class="num">${fmt(r.c)}</td>
+      <td>${r.k.replace("新字", "")}</td>
+      <td class="note">${r.nb.slice(1, 4).map((n) => `<a href="reader.html?w=${n}">${BY[n].t.slice(0, 14)}</a>`).join(" / ")}</td>
+    </tr>`).join("");
+}
 </script>
 </body>
 </html>

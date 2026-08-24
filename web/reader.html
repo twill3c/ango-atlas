@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安吾アトラス — リーダー</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="reader">
+<main>
+  <header>
+    <h1><a href="index.html">安吾アトラス</a></h1>
+    <p class="sub" id="sub">本文を読む</p>
+  </header>
+  <div class="controls">
+    <select id="pick"><option value="">作品を選ぶ…</option></select>
+    <label><input type="checkbox" id="ruby" checked> ルビを表示</label>
+  </div>
+  <div id="meta"></div>
+  <div class="reader" id="body"><p class="note">作品を選んでください。</p></div>
+  <div id="near"></div>
+</main>
+<script src="nav.js"></script>
+<script>
+let W = [], BY = {};
+const params = new URLSearchParams(location.search);
+
+fetch("data/works.json").then((r) => r.json()).then((w) => {
+  W = w.works.slice().sort((a, b) => (a.y || 9999) - (b.y || 9999));
+  BY = {};
+  W.forEach((r) => { BY[r.id] = r; });
+  const sel = document.getElementById("pick");
+  sel.innerHTML += W.map((r) => '<option value="' + r.id + '">' + (r.y || "----") + "　" + r.t + "</option>").join("");
+  sel.onchange = () => { if (sel.value) location.search = "?w=" + sel.value; };
+  const id = params.get("w");
+  if (id && BY[id]) { sel.value = id; load(id); }
+});
+
+document.getElementById("ruby").onchange = (e) => {
+  document.querySelectorAll("#body rt").forEach((rt) => {
+    rt.style.display = e.target.checked ? "" : "none";
+  });
+};
+
+function esc(s) {
+  return String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+
+function seg(x) {
+  if (x[0] === "t") return esc(x[1]);
+  if (x[0] === "r") return "<ruby>" + esc(x[1]) + "<rt>" + esc(x[2]) + "</rt></ruby>";
+  return '<span class="anno" title="' + esc(x[1]) + '">〔注〕</span>';
+}
+
+function load(id) {
+  fetch("data/texts/" + id + ".json").then((r) => r.json()).then((d) => {
+    const r = BY[id];
+    document.getElementById("sub").textContent = d.title + "(" + d.author + ")";
+    document.title = "安吾アトラス — " + d.title;
+    const pair = r.pair
+      ? ' / <a href="?w=' + r.pair.card_id + '">' +
+        (r.pair.type === "variant" ? "別表記版" : "重複版") + "を読む</a>"
+      : "";
+    document.getElementById("meta").innerHTML =
+      "<h2>" + esc(d.title) + "</h2>" +
+      (d.subtitle.length ? '<p class="note">' + d.subtitle.map(esc).join(" / ") + "</p>" : "") +
+      '<p class="note">' + (d.genre || "ジャンル不明") + " / " + (d.year || "初出年不明") + " / " +
+      d.kana + " / " + r.c.toLocaleString("ja-JP") + " 字 / 文体クラスタ 群" + r.cl + pair + "</p>" +
+      '<p class="note">' + esc(d.source) +
+      '(青空文庫 <a href="https://www.aozora.gr.jp/cards/001095/card' + id + '.html">カード ' + id + "</a>)</p>";
+    document.getElementById("body").innerHTML = d.paras.map((p, i) =>
+      '<p id="p' + i + '">' + p.map(seg).join("") + "</p>").join("");
+    const nb = r.nb.filter((n) => n !== id).slice(0, 5);
+    document.getElementById("near").innerHTML =
+      "<h2>文体の近い作品</h2>" +
+      '<p class="note">' + nb.map((n) =>
+        '<a href="?w=' + n + '">' + esc(BY[n].t) + "</a>(" + (BY[n].g || "不明") + "・" +
+        (BY[n].y || "年不明") + ")").join(" ・ ") + "</p>" +
+      '<p class="note"><a href="lens.html">文体マップで位置を見る →</a></p>';
+  });
+}
+</script>
+</body>
+</html>

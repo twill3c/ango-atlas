@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安吾アトラス — 文体マップ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="lens">
+<main>
+  <header>
+    <h1><a href="index.html">安吾アトラス</a></h1>
+    <p class="sub">文体マップ — 57 の文体特徴量から作った主成分平面</p>
+  </header>
+
+  <div class="controls">
+    <select id="color">
+      <option value="cl">文体クラスタで色分け</option>
+      <option value="g">ジャンルで色分け</option>
+      <option value="pd">時期で色分け</option>
+    </select>
+    <label><input type="checkbox" id="mmonly"> 食い違いだけ強調</label>
+    <input type="search" id="q" placeholder="題名で探す" size="16">
+    <span class="note" id="ratio"></span>
+  </div>
+
+  <div class="scroll"><svg id="map" viewBox="0 0 900 560" role="img"
+      aria-label="文体特徴量の主成分平面に作品を配置した散布図"></svg></div>
+  <div class="legend" id="legend"></div>
+
+  <div id="detail"></div>
+
+  <h2>この地図の読み方</h2>
+  <p class="note">
+    軸は 57 の文体特徴量(文長・句読点密度・文字種比率・品詞比率・機能語頻度・会話文比率・
+    一人称・文末表現)を標準化して主成分分析にかけたもの。<span id="ratio2"></span>
+    寄与率が低いのは文体特徴量では普通のことで、この 2 次元は全体の一部しか映していない。
+    近く見える作品が本当に近いかは、点を押して近傍の一覧で確かめられる。
+  </p>
+  <p class="note">
+    検証: 同一作品の新字新仮名版と新字旧仮名版 <b id="o1"></b> 組すべてで、互いが最近傍だった。
+    特徴量が仮名遣いではなく文体を捉えていることの根拠になる。詳細は
+    <a href="https://github.com/twill3c/ango-atlas/blob/main/docs/cluster_calibration.md">較正記録</a>。
+  </p>
+</main>
+<script src="nav.js"></script>
+<script>
+const GC = { "小説": "var(--c0)", "随筆・評論": "var(--c1)", "探偵小説": "var(--c4)",
+             "巷談・ルポ": "var(--c3)", "紀行・日記": "var(--c2)", "戯曲": "var(--c5)", "不明": "var(--muted)" };
+const PC = { "初期(–1937)": "var(--c2)", "戦中(1938–45)": "var(--c3)",
+             "戦後(1946–49)": "var(--c0)", "晩年(1950–)": "var(--c1)", "不明": "var(--muted)" };
+let W = [], BY = {}, D = null, sel = null;
+
+Promise.all([
+  fetch("data/works.json").then((r) => r.json()),
+  fetch("data/corpus_summary.json").then((r) => r.json()),
+]).then(([w, s]) => {
+  D = w; W = w.works; BY = Object.fromEntries(W.map((r) => [r.id, r]));
+  const p1 = (w.pca_ratio[0] * 100).toFixed(1), p2 = (w.pca_ratio[1] * 100).toFixed(1);
+  document.getElementById("ratio").textContent = "第1・第2主成分の寄与率 " + p1 + "% / " + p2 + "%";
+  document.getElementById("ratio2").textContent =
+    "第1主成分が全体の " + p1 + "%、第2主成分が " + p2 + "% を説明する。";
+  if (s.o1) document.getElementById("o1").textContent = s.o1.nearest + "/" + s.o1.n_pairs;
+  document.getElementById("color").addEventListener("change", draw);
+  document.getElementById("mmonly").addEventListener("change", draw);
+  document.getElementById("q").addEventListener("input", draw);
+  draw();
+});
+
+function colorOf(r, mode) {
+  if (mode === "g") return GC[r.g || "不明"] || GC["不明"];
+  if (mode === "pd") return PC[r.pd] || GC["不明"];
+  return "var(--c" + (r.cl % 8) + ")";
+}
+
+function draw() {
+  const mode = document.getElementById("color").value;
+  const mm = document.getElementById("mmonly").checked;
+  const q = document.getElementById("q").value.trim();
+  const xs = W.map((r) => r.x), ys = W.map((r) => r.y2);
+  const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+  const y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+  const L = 30, R = 20, T = 20, B = 30, Wd = 900, H = 560;
+  const px = (v) => L + (v - x0) / (x1 - x0) * (Wd - L - R);
+  const py = (v) => H - B - (v - y0) / (y1 - y0) * (H - T - B);
+  let s = '<line x1="' + L + '" y1="' + py(0) + '" x2="' + (Wd - R) + '" y2="' + py(0) +
+          '" stroke="currentColor" stroke-opacity=".15"/>';
+  s += '<line x1="' + px(0) + '" y1="' + T + '" x2="' + px(0) + '" y2="' + (H - B) +
+       '" stroke="currentColor" stroke-opacity=".15"/>';
+  W.forEach((r) => {
+    const hit = q && r.t.indexOf(q) >= 0;
+    const dim = (mm && !r.mm) || (q && !hit);
+    const rad = hit ? 6 : (mm && r.mm) ? 5 : 3.4;
+    s += '<circle data-id="' + r.id + '" cx="' + px(r.x).toFixed(1) + '" cy="' + py(r.y2).toFixed(1) +
+         '" r="' + rad + '" fill="' + colorOf(r, mode) + '" fill-opacity="' + (dim ? 0.12 : 0.75) +
+         '" stroke="' + (r.id === sel ? "currentColor" : "none") + '" stroke-width="1.5"' +
+         ' style="cursor:pointer"><title>' + r.t + "(" + (r.g || "不明") + " " + (r.y || "年不明") +
+         ")</title></circle>";
+  });
+  const map = document.getElementById("map");
+  map.innerHTML = s;
+  map.querySelectorAll("circle").forEach((c) => {
+    c.onclick = () => { sel = c.dataset.id; draw(); detail(sel); };
+  });
+  let cats, cols;
+  if (mode === "g") { cats = Object.keys(GC); cols = cats.map((c) => GC[c]); }
+  else if (mode === "pd") { cats = Object.keys(PC); cols = cats.map((c) => PC[c]); }
+  else {
+    cats = Object.keys(D.cluster_genre).map((k) => "群" + k + "(主に " + D.cluster_genre[k] + ")");
+    cols = Object.keys(D.cluster_genre).map((k, i) => "var(--c" + (i % 8) + ")");
+  }
+  document.getElementById("legend").innerHTML = cats.map((c, i) =>
+    '<span><i class="dot" style="background:' + cols[i] + '"></i>' + c + "</span>").join("");
+}
+
+function detail(id) {
+  const r = BY[id];
+  const nb = r.nb.filter((n) => n !== id).slice(0, 5);
+  const pair = r.pair
+    ? ' / <a href="reader.html?w=' + r.pair.card_id + '">' +
+      (r.pair.type === "variant" ? "別表記版" : "重複版") + "</a>"
+    : "";
+  const mism = r.mm ? " / <b>近傍の多数は " + r.nbg + "</b>" : "";
+  document.getElementById("detail").innerHTML =
+    "<h2>" + r.t + "</h2>" +
+    '<p class="note">' + (r.g || "ジャンル不明") + " / " + (r.y || "初出年不明") + " / " +
+    r.c.toLocaleString("ja-JP") + " 字 / " + r.k + " / 文体クラスタ 群" + r.cl + pair + mism + "</p>" +
+    '<p class="note">文体の近い作品: ' +
+    nb.map((n) => '<a href="reader.html?w=' + n + '">' + BY[n].t + "</a>(" + (BY[n].g || "不明") + ")").join(" ・ ") +
+    "</p>" +
+    '<p class="note"><a href="reader.html?w=' + r.id + '">本文を読む →</a></p>';
+}
+</script>
+</body>
+</html>

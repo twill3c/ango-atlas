@@ -5,7 +5,13 @@
   "gate": {
     "max_total_lines": 500,
     "max_files": 30,
-    "exempt": ["logs/loops/*", "out/*", "*.lock", "docs/generated/*"]
+    "exempt": [
+      "*.lock",
+      "docs/generated/*",
+      "logs/loops/*",
+      "out/*",
+      "web/data/texts/*.json"
+    ]
   },
   "secret_scan": true
 }
