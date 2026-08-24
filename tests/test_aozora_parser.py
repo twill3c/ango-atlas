@@ -106,8 +106,8 @@ def test_t101_roundtrip_all_raw():
 
 
 @pytest.mark.unit
-def test_t011_gaiji_note_as_ruby_base():
-    """T-011 / F-03: 外字注記・二の字点はルビのベースになる。
+def test_t013_gaiji_note_as_ruby_base():
+    """T-013 / F-03: 外字注記・二の字点はルビのベースになる。
 
     実測(2026-08-24、docs/notation_inventory.md で 9 件検出。抽出出力を貼る — HC-019):
       card45797  base='顳※［＃「需＋頁」、第3水準1-94-6］'  base_text='顳※'
@@ -144,3 +144,40 @@ def test_t102_no_empty_ruby_base_in_corpus():
             doc = ap.parse(f.read())
         bad += [(p.stem, r.ruby) for r in doc.rubies() if not r.base]
     assert bad == [], f"ベースが空のルビ: {bad[:10]}"
+
+
+@pytest.mark.unit
+def test_t012_subtitle_between_title_and_author():
+    """T-012 / F-03: 題名ブロックは 題名 → (副題) → 著者 の順。
+
+    期待値は抽出出力から貼る(HC-019):
+      python -c "...; print(cid, d.title, d.subtitle, d.author)"
+      42816 '阿部定という女' ['（浅田一博士へ）'] '坂口安吾'
+      45791 '〔翻訳〕ステファヌ・マラルメ' ['ヴァレリイ'] '坂口安吾訳'
+    著者を 2 行目から取ると副題を著者名にしてしまう。最終行から取る。
+    """
+    crlf = chr(13) + chr(10)
+    src = crlf.join(["阿部定という女", "（浅田一博士へ）", "坂口安吾", "", "　御手紙本日廻送。", ""])
+    doc = ap.parse(src)
+    assert doc.title == "阿部定という女"
+    assert doc.subtitle == ["（浅田一博士へ）"]
+    assert doc.author == "坂口安吾"
+    assert ap.serialize(doc) == src
+
+
+@pytest.mark.validation
+def test_t103_author_is_ango_across_corpus():
+    """T-103 / F-03: 全文の著者行が安吾である。
+
+    実測(2026-08-24、全 513 件): 坂口安吾 512 件 / 坂口安吾訳 1 件(card45791)。
+    件数ではなく「安吾以外が現れない」という不変量で書く(HC-016)。
+    """
+    raw = Path(__file__).resolve().parents[1] / "data" / "raw"
+    files = sorted(raw.glob("*.txt"))
+    if not files:
+        pytest.skip("data/raw が未取得")
+    authors = set()
+    for p in files:
+        with open(p, encoding="utf-8", newline="") as f:
+            authors.add(ap.parse(f.read()).author)
+    assert authors <= {"坂口安吾", "坂口安吾訳"}, f"想定外の著者行: {authors}"

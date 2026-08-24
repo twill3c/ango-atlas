@@ -1,0 +1,59 @@
+{
+ "provenance": {
+  "author_page": "https://www.aozora.gr.jp/index_pages/person1095.html",
+  "fetched_at": "2026-08-24",
+  "note": "件数は作家ページ『公開中の作品』の実測。定数で書かない(HC-016)"
+ },
+ "listed": 513,
+ "fetched": 513,
+ "unavailable": [],
+ "translated_cards": [
+  {
+   "card_id": "45791",
+   "title": "〔翻訳〕ステファヌ・マラルメ",
+   "other_author": {
+    "name": "ヴァレリー ポール",
+    "role": "著者"
+   }
+  }
+ ],
+ "kana_type": {
+  "新字新仮名": 319,
+  "新字旧仮名": 194
+ },
+ "ndc_top": {
+  "914": 262,
+  "913": 183,
+  "著者": 22,
+  "915": 13,
+  "795": 5,
+  "796": 4,
+  "901 914": 2,
+  "910": 2
+ },
+ "chars_total": 6030510,
+ "chars_max": 281328,
+ "chars_min": 431,
+ "longest": [
+  {
+   "title": "吹雪物語 ――夢と知性――",
+   "chars": 281328
+  },
+  {
+   "title": "街はふるさと",
+   "chars": 202378
+  },
+  {
+   "title": "不連続殺人事件",
+   "chars": 171934
+  },
+  {
+   "title": "明日は天気になれ",
+   "chars": 121277
+  },
+  {
+   "title": "復員殺人事件",
+   "chars": 102632
+  }
+ ]
+}

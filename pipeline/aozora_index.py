@@ -96,6 +96,9 @@ _CARD_ROW = re.compile(
     r'<td class="header">(?P<key>[^<]*?)：?</td>\s*<td>(?P<val>.*?)</td>', re.S
 )
 _RUBY_ZIP = re.compile(r'href="\./files/(?P<name>\d+_ruby_\d+\.zip)"')
+# ルビあり版が無いカードがある(実測 2026-08-24: 513 件中 86 件)。本文自体は取得できるので
+# ルビなし版へフォールバックし、どちらを取ったかを text_kind に残す(F-02)
+_TXT_ZIP = re.compile(r'href="\./files/(?P<name>\d+_txt_\d+\.zip)"')
 
 
 def parse_card_page(html: str, card_id: str, person_id: str = PERSON_ID) -> dict:
@@ -110,11 +113,14 @@ def parse_card_page(html: str, card_id: str, person_id: str = PERSON_ID) -> dict
         if key and key not in rows:
             rows[key] = _normalize(_strip_tags(m.group("val")))
     zm = _RUBY_ZIP.search(html)
+    tm = _TXT_ZIP.search(html)
+    ruby_url = f"{BASE}/cards/{person_id}/files/{zm.group('name')}" if zm else None
+    txt_url = f"{BASE}/cards/{person_id}/files/{tm.group('name')}" if tm else None
     return {
         "card_id": card_id,
-        "ruby_zip_url": (
-            f"{BASE}/cards/{person_id}/files/{zm.group('name')}" if zm else None
-        ),
+        "ruby_zip_url": ruby_url,
+        "text_zip_url": ruby_url or txt_url,
+        "text_kind": "ruby" if ruby_url else ("noruby" if txt_url else None),
         "kana_type": rows.get("文字遣い種別"),
         "ndc": rows.get("分類"),
         "shoshutsu": rows.get("初出"),

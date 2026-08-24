@@ -107,6 +107,30 @@ def test_t009_card_page_fields(card_html):
     assert meta["kana_type"] == "新字新仮名"
     assert meta["ndc"] == "NDC 913"
     assert meta["shoshutsu"] == "「愛と美」朝日新聞社、1947（昭和22）年10月5日"
+    assert meta["text_kind"] == "ruby"
+    assert meta["text_zip_url"] == meta["ruby_zip_url"]
+
+
+@pytest.mark.unit
+def test_t011_noruby_fallback():
+    """T-011 / F-02: ルビあり版が無いカードはルビなし版へフォールバックする。
+
+    実測(2026-08-24): 公開中 513 件のうち 86 件はルビあり zip を持たず、
+    「テキストファイル(ルビなし)」の _txt_ zip のみを掲載する。本文は取得できるので
+    external_host(取得不能)に分類してはならない。
+    期待値は実際のカード HTML の実測。
+      card45735「新らしき文学」 → 45735_txt_23913.zip
+    """
+    html = (
+        '<a href="./files/45735_txt_23913.zip">45735_txt_23913.zip</a>'
+        '<a href="./files/45735_24331.html">45735_24331.html</a>'
+    )
+    meta = ix.parse_card_page(html, card_id="45735")
+    assert meta["ruby_zip_url"] is None
+    assert meta["text_kind"] == "noruby"
+    assert meta["text_zip_url"] == (
+        "https://www.aozora.gr.jp/cards/001095/files/45735_txt_23913.zip"
+    )
 
 
 @pytest.mark.unit

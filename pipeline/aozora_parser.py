@@ -70,6 +70,7 @@ class Doc:
     header: str
     body: list[Node]
     footer: str
+    subtitle: list[str] = field(default_factory=list)
     header_raw: str = ""
     footer_raw: str = ""
 
@@ -214,15 +215,35 @@ def split_sections(src: str) -> tuple[str, str, str]:
     )
 
 
+def _head_fields(header: str) -> tuple[str, list[str], str]:
+    """題名・副題・著者を取る。
+
+    実測(2026-08-24): 先頭の空行までが題名ブロックで、題名 → (副題) → 著者名 の順。
+    副題を持つ例 card42816「阿部定という女 / （浅田一博士へ） / 坂口安吾」があるため、
+    著者はブロックの 2 行目ではなく**最終行**を取る。
+    """
+    block: list[str] = []
+    for line in header.split(chr(10)):
+        bare = line.rstrip(chr(13))
+        if not bare.strip():
+            if block:
+                break
+            continue
+        block.append(bare)
+    if not block:
+        return "", [], ""
+    if len(block) == 1:
+        return block[0], [], ""
+    return block[0], block[1:-1], block[-1]
+
+
 def parse(src: str) -> Doc:
     header, body, footer = split_sections(src)
-    head_lines = [l.rstrip("\r\n") for l in header.split("\n")]
-    non_empty = [l for l in head_lines if l.strip()]
-    title = non_empty[0] if non_empty else ""
-    author = non_empty[1] if len(non_empty) > 1 else ""
+    title, subtitle, author = _head_fields(header)
     return Doc(
         title=title,
         author=author,
+        subtitle=subtitle,
         header=header,
         body=_tokenize(body),
         footer=footer,

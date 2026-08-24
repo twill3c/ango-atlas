@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安吾アトラス</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>安吾アトラス</h1>
+    <p class="sub">青空文庫 坂口安吾コーパスを、文体・主題・時系列・言及の四軸で俯瞰する</p>
+  </header>
+
+  <p class="note" id="status">コーパス実測を読み込んでいます…</p>
+
+  <h2>コーパスの現況(実測)</h2>
+  <div class="tiles" id="tiles"></div>
+
+  <h2>文字遣いの内訳</h2>
+  <table id="kana"><tbody></tbody></table>
+  <p class="note">
+    同一作品に新字新仮名版と新字旧仮名版の両方があるものは、表記だけが異なる対になる。
+    これを「文体特徴量が表記ではなく文体を捉えているか」の検証オラクルに使う(L2 以降)。
+  </p>
+
+  <h2>長い作品</h2>
+  <table id="longest"><tbody></tbody></table>
+
+  <h2>これから作るもの</h2>
+  <ol>
+    <li>年表・作品一覧 — 初出年 × ジャンル × 文字数</li>
+    <li>文体マップ — 文体クラスタとジャンルラベルの食い違いを見せる</li>
+    <li>主題マップ — 主題の推移と、同じ主題の小説版・評論版</li>
+    <li><strong>一節から探す</strong> — 段落を起点に他作品の近傍段落へ渡り歩く</li>
+    <li>転換点 — 文体が変わった年</li>
+    <li>リーダー — ルビ付き本文</li>
+  </ol>
+  <p class="note">
+    現在 L1(取得・パーサー・往復検査)完了時点。設計と検証方針は
+    <a href="https://github.com/twill3c/ango-atlas/blob/main/SPEC.md">SPEC.md</a> を参照。
+  </p>
+</main>
+
+<footer>
+  <span>&copy; 2026 twill3c</span>
+  <a href="https://github.com/twill3c/ango-atlas">GitHub</a>
+  <a href="https://app-menu-amber.vercel.app/">App Menu</a>
+</footer>
+
+<script>
+const fmt = (n) => n.toLocaleString("ja-JP");
+fetch("data/corpus_summary.json").then(r => r.json()).then(d => {
+  document.getElementById("status").textContent =
+    "取得元 " + d.provenance.author_page + "(" + d.provenance.fetched_at + " 実測)";
+  const tiles = [
+    ["公開中の作品", fmt(d.listed)],
+    ["本文取得", fmt(d.fetched)],
+    ["総文字数", fmt(d.chars_total)],
+    ["最長作品", fmt(d.chars_max) + " 字"],
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(
+    ([l, n]) => '<div class="tile"><div class="n">' + n + '</div><div class="l">' + l + '</div></div>'
+  ).join("");
+  document.querySelector("#kana tbody").innerHTML = Object.entries(d.kana_type).map(
+    ([k, v]) => "<tr><th>" + k + '</th><td class="num">' + fmt(v) + "</td></tr>"
+  ).join("");
+  document.querySelector("#longest tbody").innerHTML = d.longest.map(
+    (w) => "<tr><th>" + w.title + '</th><td class="num">' + fmt(w.chars) + " 字</td></tr>"
+  ).join("");
+}).catch((e) => {
+  document.getElementById("status").textContent = "コーパスサマリを読み込めませんでした: " + e;
+});
+</script>
+</body>
+</html>

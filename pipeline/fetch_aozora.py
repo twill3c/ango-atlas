@@ -101,7 +101,17 @@ def run(limit: int | None = None) -> list[dict]:
                 card_html, card_id=w["card_id"], person_id=w["person_id"]
             )
             rec.update(
-                {k: meta[k] for k in ("ruby_zip_url", "ndc", "shoshutsu", "note")}
+                {
+                    k: meta[k]
+                    for k in (
+                        "ruby_zip_url",
+                        "text_zip_url",
+                        "text_kind",
+                        "ndc",
+                        "shoshutsu",
+                        "note",
+                    )
+                }
             )
             # カードページ側の文字遣い種別と作家ページ側の食い違いは記録して残す
             if meta["kana_type"] and meta["kana_type"] != w["kana_type"]:
@@ -113,16 +123,16 @@ def run(limit: int | None = None) -> list[dict]:
             print(f"[{n}/{len(works)}] {w['card_id']} カード失敗: {e}")
             continue
 
-        if not rec["ruby_zip_url"]:
+        if not rec["text_zip_url"]:
             rec["external_host"] = True
-            rec["evidence"] = "カードページにルビあり zip の掲載が無い(実測)"
+            rec["evidence"] = "カードページに本文 zip(ルビあり/なしとも)の掲載が無い(実測)"
             records.append(rec)
             print(f"[{n}/{len(works)}] {w['card_id']} ルビ zip 無し: {w['title']}")
             continue
 
         try:
-            zname = rec["ruby_zip_url"].rsplit("/", 1)[-1]
-            text, inner, enc = extract_text(fetch(rec["ruby_zip_url"], zname))
+            zname = rec["text_zip_url"].rsplit("/", 1)[-1]
+            text, inner, enc = extract_text(fetch(rec["text_zip_url"], zname))
         except Exception as e:  # noqa: BLE001
             rec["external_host"] = True
             rec["evidence"] = f"本文取得に失敗: {type(e).__name__}: {e}"
