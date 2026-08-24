@@ -1,0 +1,208 @@
+{
+ "provenance": {
+  "built_at": "2026-08-25",
+  "seed": 20260825
+ },
+ "conditions": {
+  "fold_pos": {
+   "n_features": 64,
+   "o1_nearest": 50,
+   "o1_top5": 50,
+   "o1_rank_median": 1.0,
+   "o1_rank_worst": 1,
+   "n_pairs": 50,
+   "per_k": {
+    "3": {
+     "kmeans_same_cluster": 50,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.0054,
+     "ari_period_kmeans": 0.0022,
+     "ari_genre_ward": 0.0856,
+     "sizes_kmeans": [
+      509,
+      3,
+      1
+     ]
+    },
+    "4": {
+     "kmeans_same_cluster": 50,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.2483,
+     "ari_period_kmeans": 0.0087,
+     "ari_genre_ward": 0.0967,
+     "sizes_kmeans": [
+      273,
+      236,
+      3,
+      1
+     ]
+    },
+    "5": {
+     "kmeans_same_cluster": 50,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.1797,
+     "ari_period_kmeans": 0.0481,
+     "ari_genre_ward": 0.084,
+     "sizes_kmeans": [
+      216,
+      186,
+      107,
+      3,
+      1
+     ]
+    },
+    "6": {
+     "kmeans_same_cluster": 50,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.1429,
+     "ari_period_kmeans": 0.0615,
+     "ari_genre_ward": 0.0751,
+     "sizes_kmeans": [
+      147,
+      141,
+      137,
+      84,
+      3,
+      1
+     ]
+    },
+    "8": {
+     "kmeans_same_cluster": 50,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.0915,
+     "ari_period_kmeans": 0.0952,
+     "ari_genre_ward": 0.1147,
+     "sizes_kmeans": [
+      123,
+      103,
+      89,
+      69,
+      67,
+      58,
+      3,
+      1
+     ]
+    },
+    "10": {
+     "kmeans_same_cluster": 50,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.0813,
+     "ari_period_kmeans": 0.1096,
+     "ari_genre_ward": 0.114,
+     "sizes_kmeans": [
+      95,
+      91,
+      89,
+      64,
+      57,
+      45,
+      40,
+      28,
+      3,
+      1
+     ]
+    }
+   }
+  },
+  "raw_pos": {
+   "n_features": 64,
+   "o1_nearest": 50,
+   "o1_top5": 50,
+   "o1_rank_median": 1.0,
+   "o1_rank_worst": 1,
+   "n_pairs": 50,
+   "per_k": {
+    "3": {
+     "kmeans_same_cluster": 49,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.2381,
+     "ari_period_kmeans": 0.0628,
+     "ari_genre_ward": 0.1259,
+     "sizes_kmeans": [
+      271,
+      132,
+      110
+     ]
+    },
+    "4": {
+     "kmeans_same_cluster": 50,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.1729,
+     "ari_period_kmeans": 0.0858,
+     "ari_genre_ward": 0.1283,
+     "sizes_kmeans": [
+      221,
+      115,
+      93,
+      84
+     ]
+    },
+    "5": {
+     "kmeans_same_cluster": 45,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.1297,
+     "ari_period_kmeans": 0.0725,
+     "ari_genre_ward": 0.1122,
+     "sizes_kmeans": [
+      150,
+      147,
+      97,
+      88,
+      31
+     ]
+    },
+    "6": {
+     "kmeans_same_cluster": 47,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.1148,
+     "ari_period_kmeans": 0.0845,
+     "ari_genre_ward": 0.125,
+     "sizes_kmeans": [
+      121,
+      108,
+      97,
+      91,
+      65,
+      31
+     ]
+    },
+    "8": {
+     "kmeans_same_cluster": 50,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.0938,
+     "ari_period_kmeans": 0.1024,
+     "ari_genre_ward": 0.0637,
+     "sizes_kmeans": [
+      144,
+      83,
+      78,
+      60,
+      46,
+      41,
+      35,
+      26
+     ]
+    },
+    "10": {
+     "kmeans_same_cluster": 50,
+     "ward_same_cluster": 50,
+     "ari_genre_kmeans": 0.1049,
+     "ari_period_kmeans": 0.0773,
+     "ari_genre_ward": 0.072,
+     "sizes_kmeans": [
+      135,
+      81,
+      77,
+      56,
+      43,
+      35,
+      34,
+      28,
+      23,
+      1
+     ]
+    }
+   }
+  }
+ }
+}
