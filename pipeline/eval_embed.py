@@ -99,6 +99,57 @@ def eval_queries(V: np.ndarray, row_of: dict[int, int], model: str) -> dict:
     return m
 
 
+def write_doc(res: dict) -> None:
+    doc = ROOT / "docs" / "embed_eval.md"
+    L = [
+        "# 埋め込みの評価(実測)",
+        "",
+        "タグは `モデル_入力` の形。入力 raw は原文のまま、modern は `kana_fold.to_modern` で",
+        "現代仮名遣いへ寄せたもの。",
+        "",
+        "## モデル選定の制約(2026-08-25 実測、8 コア CPU)",
+        "",
+        "| モデル | 全 15,430 件の所要 | 次元 | 採否 |",
+        "|---|---|---|---|",
+        "| cl-nagoya/ruri-v3-30m | 10 分 | 256 | 採用 |",
+        "| intfloat/multilingual-e5-small | 17 分 | 384 | 採用 |",
+        "| cl-nagoya/ruri-base | 195 分 | 768 | 見送り(この環境では非現実的) |",
+        "| cl-nagoya/ruri-small | — | — | 見送り(transformers 5.x でトークナイザが読めない) |",
+        "",
+        "## A) 二重版チャンク対応(人手ゼロ・表記への頑健性)",
+        "",
+        "旧仮名版のチャンクを問いにして、対応する新仮名版のチャンクが取れるか。",
+        "正解は畳んだ本文の重なりで作ってあり、埋め込みとは無関係につくられる。",
+        "",
+        "| タグ | 件数 | R@1 | R@10 | MRR | 順位中央値 |",
+        "|---|---|---|---|---|---|",
+    ]
+    for tag, d in res.items():
+        v = d["variant_chunks"]
+        L.append(f"| {tag} | {v['n']} | {v['recall@1']} | {v['recall@10']} | {v['mrr']} | {v['median_rank']} |")
+    L += [
+        "",
+        "## B) 人手評価セット(意味検索の質)",
+        "",
+        "チャンクを読み、その内容を別の言葉で言い換えた 35 問。問いに正解本文の内容語が",
+        "そのまま入っていないことをテスト(T-413)が守っている。",
+        "",
+        "| タグ | 問数 | R@1 | R@5 | R@10 | MRR |",
+        "|---|---|---|---|---|---|",
+    ]
+    for tag, d in res.items():
+        q = d["queries"]
+        L.append(f"| {tag} | {q['n']} | {q['recall@1']} | {q['recall@5']} | {q['recall@10']} | {q['mrr']} |")
+    L += ["", "## 取れなかった問い", ""]
+    for tag, d in res.items():
+        miss = [x for x in d["query_detail"] if x["rank"] is None or x["rank"] > 10]
+        L.append(f"**{tag}**: {len(miss)} 問")
+        for m in miss:
+            L.append(f"- 順位 {m['rank']} — 「{m['q']}」({m['work']})")
+        L.append("")
+    doc.write_text(chr(10).join(L), encoding="utf-8")
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--tags", nargs="+", required=True, help="例: ruri_raw e5_raw")
@@ -118,4 +169,5 @@ if __name__ == "__main__":
     prev = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else {}
     prev.update(out)
     OUT.write_text(json.dumps(prev, ensure_ascii=False, indent=1), encoding="utf-8")
+    write_doc(prev)
     print(f"→ {OUT}")
