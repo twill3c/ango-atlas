@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安吾アトラス — 一節から探す</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="search">
+<main>
+  <header>
+    <h1><a href="index.html">安吾アトラス</a></h1>
+    <p class="sub">一節から探す — ある段落を起点に、他の作品の近い一節へ渡り歩く</p>
+  </header>
+
+  <div class="controls">
+    <button id="tab-passage" aria-current="page">一節から探す</button>
+    <button id="tab-word">語で探す</button>
+    <span class="note" id="status"></span>
+  </div>
+
+  <section id="pane-passage">
+    <div class="controls">
+      <select id="work"><option value="">作品を選ぶ…</option></select>
+      <select id="chunk" disabled><option value="">一節を選ぶ…</option></select>
+    </div>
+    <div id="source" class="reader"></div>
+  </section>
+
+  <section id="pane-word" hidden>
+    <div class="controls">
+      <input type="search" id="q" placeholder="語で探す(例: 呉清源、競輪、桜)" size="28">
+      <button id="go">探す</button>
+      <span class="note" id="terms"></span>
+    </div>
+    <p class="note">
+      語の索引は名詞だけを収めている(2 文字以上、または 1 文字の漢字。数詞は除く)。
+      埋め込みが苦手な固有名詞を補うための機能なので、活用する語は入っていない。
+    </p>
+  </section>
+
+  <h2 id="rhead" hidden>近い一節</h2>
+  <div id="results"></div>
+
+  <h2>この機能について</h2>
+  <p class="note">
+    「一節から探す」は<b>クエリのたびにモデルを動かさない</b>。全 15,430 の一節を前もって
+    ベクトルにしてあり、起点の一節のベクトルとの内積を取るだけで近傍が出る。だから
+    サーバーも API も要らない。ベクトルは <span id="dims"></span> 次元 float16(5.43 MB)で、
+    原次元との近傍一致率は 0.9815(2026-08-25 実測)。
+  </p>
+  <p class="note">
+    同じ作品からの結果は最大 2 件に抑えている。新字新仮名版と新字旧仮名版の両方がある作品は
+    片方だけを検索対象にしている(<span id="skipn"></span> 作品を除外)。リーダーでは両版とも読める。
+  </p>
+</main>
+<script src="nav.js"></script>
+<script src="search.js"></script>
+<script>
+const S = window.AngoSearch;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const setStatus = (t) => { $("status").textContent = t || ""; };
+
+let mode = "passage";
+$("tab-passage").onclick = () => switchTab("passage");
+$("tab-word").onclick = () => switchTab("word");
+function switchTab(m) {
+  mode = m;
+  $("pane-passage").hidden = m !== "passage";
+  $("pane-word").hidden = m !== "word";
+  $("tab-passage").setAttribute("aria-current", m === "passage" ? "page" : "false");
+  $("tab-word").setAttribute("aria-current", m === "word" ? "page" : "false");
+  $("results").innerHTML = "";
+  $("rhead").hidden = true;
+  if (m === "word") S.ensureBm25(setStatus).catch((e) => setStatus(String(e)));
+}
+
+S.ensureBase().then(() => {
+  const works = S.state.works.slice().sort((a, b) => (a.y || 9999) - (b.y || 9999));
+  $("work").innerHTML += works
+    .map((r) => '<option value="' + r.id + '">' + (r.y || "----") + "　" + r.t + "</option>")
+    .join("");
+  $("skipn").textContent = Object.keys(S.state.skip).length;
+  $("dims").textContent = S.state.index.dims;
+  const p = new URLSearchParams(location.search);
+  if (p.get("w")) { $("work").value = p.get("w"); fillChunks(p.get("c")); }
+}).catch((e) => setStatus(String(e)));
+
+$("work").onchange = () => fillChunks(null);
+
+function fillChunks(pick) {
+  const w = $("work").value;
+  const sel = $("chunk");
+  if (!w) { sel.disabled = true; sel.innerHTML = '<option value="">一節を選ぶ…</option>'; return; }
+  const rows = [];
+  for (let doc = 0; doc < S.state.index.n; doc++) {
+    const c = S.chunkAt(doc);
+    if (c.w === w) rows.push({ c, doc });
+  }
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">一節を選ぶ…</option>' + rows
+    .map((x, k) => '<option value="' + x.doc + '">' + (k + 1) + " 段目あたり(" + x.c.n + " 字)</option>")
+    .join("");
+  if (pick !== null && rows.some((x) => String(x.doc) === pick)) sel.value = pick;
+  if (sel.value) run();
+}
+
+$("chunk").onchange = run;
+$("go").onclick = runWord;
+$("q").addEventListener("keydown", (e) => { if (e.key === "Enter") runWord(); });
+
+async function run() {
+  const doc = Number($("chunk").value);
+  if (!$("chunk").value) return;
+  const c = S.chunkAt(doc);
+  $("source").innerHTML = '<p class="note">読み込み中…</p>';
+  const text = await S.chunkText(c);
+  $("source").innerHTML = "<p><b>起点</b>：" + esc(text) + "</p>";
+  await S.ensureVectors(setStatus);
+  const hits = S.nearest(doc, 12);
+  render(hits, "近い一節");
+}
+
+async function runWord() {
+  const q = $("q").value.trim();
+  if (!q) return;
+  await S.ensureBm25(setStatus);
+  const { terms, hits } = S.bm25Search(q, 12);
+  $("terms").textContent = terms.length ? "索引語: " + terms.join(" / ") : "索引に無い語です";
+  render(hits, "見つかった一節");
+}
+
+async function render(hits, title) {
+  $("rhead").hidden = false;
+  $("rhead").textContent = title + "(" + hits.length + " 件)";
+  if (!hits.length) { $("results").innerHTML = '<p class="note">見つからなかった。</p>'; return; }
+  $("results").innerHTML = '<p class="note">本文を読み込み中…</p>';
+  const rows = await Promise.all(hits.map(async (h) => {
+    const w = S.state.byWork[h.chunk.w];
+    const text = await S.chunkText(h.chunk);
+    return (
+      '<div style="margin:0 0 1.1rem">' +
+      '<div class="note"><a href="reader.html?w=' + h.chunk.w + '#p' + h.chunk.p + '">' +
+      esc(w.t) + "</a>(" + (w.g || "不明") + "・" + (w.y || "年不明") + ")　" +
+      "類似度 " + h.score.toFixed(3) +
+      '　<a href="?w=' + h.chunk.w + "&c=" + h.doc + '">この一節を起点にする</a></div>' +
+      "<div>" + esc(text.slice(0, 220)) + (text.length > 220 ? "…" : "") + "</div></div>"
+    );
+  }));
+  $("results").innerHTML = rows.join("");
+}
+</script>
+</body>
+</html>

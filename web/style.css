@@ -68,3 +68,11 @@ footer a { margin: 0 .45rem; }
 .reader rt { font-size: .5em; color: var(--muted); }
 .reader .anno { color: var(--muted); font-size: .8em; }
 .scroll { overflow-x: auto; }
+
+.findlink {
+  text-decoration: none; color: var(--muted); font-size: .8em;
+  padding: 0 .2em; opacity: .45;
+}
+.findlink:hover { opacity: 1; color: var(--accent); }
+#results > div { border-left: 2px solid var(--line); padding-left: .7rem; }
+button[aria-current="page"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }

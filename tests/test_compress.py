@@ -50,11 +50,18 @@ def test_t416_int8_roundtrip_preserves_direction():
 @pytest.mark.validation
 def test_t417_shipped_vectors_fit_the_budget():
     """T-417 / N-04・F-15: 配信用の検索データが 8 MB 以下。"""
-    files = ["chunk_vectors.f16", "chunk_index.json", "chunk_projection.f32"]
+    files = [
+        "chunk_vectors.f16", "chunk_index.json",
+        "bm25_terms.txt", "bm25_offsets.bin", "bm25_postings.bin",
+        "bm25_docs.bin", "bm25_meta.json",
+    ]
     if not all((WEB / f).exists() for f in files):
         pytest.skip("配信用ベクトル未生成")
     total = sum((WEB / f).stat().st_size for f in files)
-    assert total <= 8_000_000, f"検索データが {total/1e6:.2f} MB で N-04 を超える"
+    assert total <= 8_000_000, (
+        f"検索データが {total/1e6:.2f} MB で N-04(8 MB)を超える。"
+        "次元を下げるか索引語を絞ること — 上限を上げてはならない"
+    )
 
 
 @pytest.mark.validation
@@ -69,7 +76,9 @@ def test_t418_shipped_vectors_match_the_index():
     norms = np.linalg.norm(V, axis=1)
     assert np.allclose(norms, 1.0, atol=2e-3), f"正規化が崩れている: {norms.min()}–{norms.max()}"
     chunks = json.loads((ROOT / "data" / "chunks.json").read_text(encoding="utf-8"))["chunks"]
-    assert [c["i"] for c in idx["chunks"]] == [c["i"] for c in chunks]
+    assert idx["n"] == len(chunks)
+    assert [idx["works"][w] for w in idx["w"]] == [c["card_id"] for c in chunks]
+    assert idx["p"] == [c["para_start"] for c in chunks]
 
 
 @pytest.mark.validation

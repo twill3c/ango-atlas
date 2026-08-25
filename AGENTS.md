@@ -120,3 +120,13 @@ Conventional Commits(feat/fix/test/docs/refactor/chore)。スキャフォール�
 - 圧縮は**中心化しない**打ち切り SVD + float16。中心化すると内積が保たれない
 - モデル・チャンク・前処理を変えたら `pipeline.eval_embed` と `pipeline.compress` を
   回し、`docs/embed_eval.md` と `docs/compression.md` を再生成する
+
+### 検索(L5 実測 2026-08-25)
+
+- 配信物を触ったら **`pytest tests/test_search.py`** を必ず回す。JS(web/search.js)と
+  Python/numpy の二実装照合で、配信側の事故(改行コード・並行配列化・次元変更)を捕まえる
+- **テキストの配信物は `write_bytes` で書く**。`write_text` は Windows で CRLF になり、
+  JS の `split` が壊れる。Python 側は読み込み時の正規化で気づけない
+- 検索データは N-04 の 8 MB が上限で、余裕は 0.5 MB しかない。索引語や次元を増やすときは
+  `pipeline.compress` の表を見て次元と引き換えにすること。**上限を上げてはならない**
+- チャンク索引は並行配列(`works`/`w`/`p`/`q`/`len`)。オブジェクト配列に戻すと 0.6 MB 増える

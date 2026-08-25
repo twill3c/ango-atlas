@@ -128,9 +128,11 @@ def evaluate(V: np.ndarray, dims_list: tuple[int, ...], center: bool = False) ->
 
 
 # 採用値(2026-08-25 実測、docs/compression.md)。
-# 192 次元 × float16 = 5.93 MB で R@10 0.9925 / τ 0.983。N-04 の 8 MB に収まり、
-# int8(2.96 MB, R@10 0.958)より品質がはるかに高い。中心化はしない。
-SHIP_DIMS = 192
+# 176 次元 × float16 = 5.43 MB で R@10 0.9815 / τ 0.963。中心化はしない。
+# 192 次元(R@10 0.9925)の方が良いが、BM25 索引と合わせた検索データが 7.98 MB になり
+# N-04(8 MB)まで 0.02 MB しか残らない。次の小さな変更で必ず割るので、
+# 0.5 MB の余裕を買って 176 にした。int8(R@10 0.958)より float16 の方が品質は高い。
+SHIP_DIMS = 176
 SHIP_DTYPE = "float16"
 
 
@@ -180,6 +182,20 @@ def emit(tag: str, dims: int = SHIP_DIMS) -> dict:
     (web / "chunk_vectors.f16").write_bytes(Z.tobytes())
     chunks = json.loads((ROOT / "data" / "chunks.json").read_text(encoding="utf-8"))["chunks"]
     by = {c["i"]: c for c in chunks}
+    # 索引は**並行配列**にする。1 チャンク 1 オブジェクトの JSON だと 0.86 MB あり、
+    # 検索データ合計が N-04 の 8 MB を超えた(実測)。作品 ID は一覧を持って番号で指す
+    work_ids: list[str] = []
+    work_no: dict[str, int] = {}
+    w_idx, p_arr, q_arr, n_arr = [], [], [], []
+    for i in ids:
+        c = by[i]
+        if c["card_id"] not in work_no:
+            work_no[c["card_id"]] = len(work_ids)
+            work_ids.append(c["card_id"])
+        w_idx.append(work_no[c["card_id"]])
+        p_arr.append(c["para_start"])
+        q_arr.append(c["para_end"])
+        n_arr.append(len(c["text"]))
     (web / "chunk_index.json").write_text(
         json.dumps(
             {
@@ -187,21 +203,28 @@ def emit(tag: str, dims: int = SHIP_DIMS) -> dict:
                 "dims": dims,
                 "dtype": "float16",
                 "n": len(ids),
-                "note": "行の並びは chunks の順。値は L2 正規化済みなので内積=コサイン",
-                "chunks": [
-                    {"i": i, "w": by[i]["card_id"], "p": by[i]["para_start"]} for i in ids
-                ],
+                "note": "並行配列。行の並びは chunks の順。値は L2 正規化済みなので内積=コサイン",
+                "works": work_ids,
+                "w": w_idx,
+                "p": p_arr,
+                "q": q_arr,
+                "len": n_arr,
             },
             ensure_ascii=False,
+            separators=(",", ":"),
         ),
         encoding="utf-8",
     )
-    # 問い側を同じ空間へ落とすための射影行列(ブラウザで使う)
-    (web / "chunk_projection.f32").write_bytes(P.astype(np.float32).tobytes())
+    # 射影行列は「問い側を同じ空間へ落とす」ためのもので、自由語の意味検索(F-25)を
+    # 出荷するまで誰も使わない。使わないものは配信しない — N-04 の予算が薄いため。
+    # 必要になったら P を書き出せばよい(下の行を有効にする)。
+    # (web / "chunk_projection.f32").write_bytes(P.astype(np.float32).tobytes())
+    old = web / "chunk_projection.f32"
+    if old.exists():
+        old.unlink()
     return {
         "vectors_mb": round((web / "chunk_vectors.f16").stat().st_size / 1e6, 2),
         "index_mb": round((web / "chunk_index.json").stat().st_size / 1e6, 2),
-        "projection_kb": round((web / "chunk_projection.f32").stat().st_size / 1e3, 1),
     }
 
 

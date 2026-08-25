@@ -15,6 +15,7 @@
   <div class="controls">
     <select id="pick"><option value="">作品を選ぶ…</option></select>
     <label><input type="checkbox" id="ruby" checked> ルビを表示</label>
+    <span class="note">段落末の ◦ を押すと、その一節を起点に他作品を探せる</span>
   </div>
   <div id="meta"></div>
   <div class="reader" id="body"><p class="note">作品を選んでください。</p></div>
@@ -68,15 +69,25 @@ function load(id) {
       d.kana + " / " + r.c.toLocaleString("ja-JP") + " 字 / 文体クラスタ 群" + r.cl + pair + "</p>" +
       '<p class="note">' + esc(d.source) +
       '(青空文庫 <a href="https://www.aozora.gr.jp/cards/001095/card' + id + '.html">カード ' + id + "</a>)</p>";
-    document.getElementById("body").innerHTML = d.paras.map((p, i) =>
-      '<p id="p' + i + '">' + p.map(seg).join("") + "</p>").join("");
+    // 段落 → チャンクの対応。段落を押すと、その一節を起点に検索へ渡る(F-16)
+    const chunkOf = {};
+    (d.chunks || []).forEach(([a, b, doc]) => {
+      for (let k = a; k <= b; k++) chunkOf[k] = doc;
+    });
+    document.getElementById("body").innerHTML = d.paras.map((p, i) => {
+      const doc = chunkOf[i];
+      const link = doc === undefined ? "" :
+        ' <a class="findlink" href="search.html?w=' + id + "&c=" + doc + '" title="この一節を起点に他作品を探す">◦</a>';
+      return '<p id="p' + i + '">' + p.map(seg).join("") + link + "</p>";
+    }).join("");
     const nb = r.nb.filter((n) => n !== id).slice(0, 5);
     document.getElementById("near").innerHTML =
       "<h2>文体の近い作品</h2>" +
       '<p class="note">' + nb.map((n) =>
         '<a href="?w=' + n + '">' + esc(BY[n].t) + "</a>(" + (BY[n].g || "不明") + "・" +
         (BY[n].y || "年不明") + ")").join(" ・ ") + "</p>" +
-      '<p class="note"><a href="lens.html">文体マップで位置を見る →</a></p>';
+      '<p class="note"><a href="lens.html">文体マップで位置を見る →</a>　' +
+      '<a href="search.html?w=' + id + '">この作品の一節から探す →</a></p>';
   });
 }
 </script>

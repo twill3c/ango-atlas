@@ -140,6 +140,14 @@ def texts() -> int:
     out = WEB / "texts"
     out.mkdir(parents=True, exist_ok=True)
     meta = {r["card_id"]: r for r in json.loads(META.read_text(encoding="utf-8"))["works"]}
+    # 段落 → チャンクの対応(リーダーから「この一節から探す」へ渡すため)
+    ch_path = ROOT / "data" / "chunks.json"
+    by_card_chunks: dict[str, list] = {}
+    if ch_path.exists():
+        for c in json.loads(ch_path.read_text(encoding="utf-8"))["chunks"]:
+            by_card_chunks.setdefault(c["card_id"], []).append(
+                [c["para_start"], c["para_end"], c["i"]]
+            )
     n = 0
     for cid, r in meta.items():
         with open(RAW / f"{cid}.txt", encoding="utf-8", newline="") as f:
@@ -174,6 +182,7 @@ def texts() -> int:
                     "year": r["pub_year"],
                     "kana": r["kana_type"],
                     "source": doc.footer.split("\n")[0].strip(),
+                    "chunks": by_card_chunks.get(cid, []),
                     "paras": paras,
                 },
                 ensure_ascii=False,

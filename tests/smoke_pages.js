@@ -23,7 +23,12 @@ function makeEl(tag) {
 
 function run(page) {
   const html = fs.readFileSync(path.join(WEB, page), "utf-8");
-  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  // 外部スクリプト(src 付き)も同じ文脈で読み込む
+  const externals = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)]
+    .map((m) => m[1])
+    .filter((n) => n !== "nav.js");
+  const scripts = externals.map((n) => fs.readFileSync(path.join(WEB, n), "utf-8"))
+    .concat([...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]));
   const els = {};
   const doc = {
     body: makeEl("body"),
@@ -33,16 +38,29 @@ function run(page) {
     querySelectorAll: () => [],
   };
   doc.body.dataset.page = page.replace(".html", "");
+  els.q = makeEl("input"); els.q.value = "呉清源";
+  els.work = makeEl("select"); els.chunk = makeEl("select");
   const errors = [];
   const ctx = {
     document: doc,
     location: { search: "?w=42620" },
     URLSearchParams: global.URLSearchParams,
-    Math, Object, Array, String, Number, JSON, console,
+    Math, Object, Array, String, Number, JSON, console, Map, Set,
+    Uint8Array, Uint16Array, Uint32Array, Float32Array,
+    Float16Array: typeof Float16Array !== "undefined" ? Float16Array : undefined,
+    window: {},
     fetch: (u) => {
       const f = path.join(WEB, u);
       if (!fs.existsSync(f)) { errors.push("missing " + u); return Promise.reject(new Error(u)); }
-      return Promise.resolve({ json: () => Promise.resolve(JSON.parse(fs.readFileSync(f, "utf-8"))) });
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(JSON.parse(fs.readFileSync(f, "utf-8"))),
+        text: () => Promise.resolve(fs.readFileSync(f, "utf-8")),
+        arrayBuffer: () => {
+          const b = fs.readFileSync(f);
+          return Promise.resolve(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
+        },
+      });
     },
     Promise,
   };
@@ -56,7 +74,7 @@ function run(page) {
 
 (async () => {
   let bad = 0;
-  for (const p of ["index.html", "lens.html", "reader.html"]) {
+  for (const p of ["index.html", "lens.html", "reader.html", "search.html"]) {
     const r = await run(p);
     const rendered = Object.entries(r.els)
       .filter(([, e]) => e.innerHTML && e.innerHTML.length > 40)
