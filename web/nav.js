@@ -4,6 +4,7 @@
   const items = [
     ["index.html", "年表・作品一覧"],
     ["lens.html", "文体マップ"],
+    ["topic.html", "主題マップ"],
     ["search.html", "一節から探す"],
     ["reader.html", "リーダー"],
   ];

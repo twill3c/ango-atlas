@@ -34,7 +34,10 @@ function run(page) {
     body: makeEl("body"),
     title: "",
     getElementById: (id) => (els[id] = els[id] || makeEl("div")),
-    querySelector: () => makeEl("div"),
+    querySelector: (sel) => {
+      els["_sel_" + sel] = els["_sel_" + sel] || makeEl("div");
+      return els["_sel_" + sel];
+    },
     querySelectorAll: () => [],
   };
   doc.body.dataset.page = page.replace(".html", "");
@@ -74,7 +77,7 @@ function run(page) {
 
 (async () => {
   let bad = 0;
-  for (const p of ["index.html", "lens.html", "reader.html", "search.html"]) {
+  for (const p of ["index.html", "lens.html", "topic.html", "reader.html", "search.html"]) {
     const r = await run(p);
     const rendered = Object.entries(r.els)
       .filter(([, e]) => e.innerHTML && e.innerHTML.length > 40)

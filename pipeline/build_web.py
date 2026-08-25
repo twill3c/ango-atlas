@@ -193,6 +193,55 @@ def texts() -> int:
     return n
 
 
+def topics_payload() -> dict | None:
+    """主題・転換点・言及グラフを 1 つにまとめて配信する(topic.html 用)。"""
+    tp = ROOT / "data" / "topics.json"
+    if not tp.exists():
+        return None
+    d = json.loads(tp.read_text(encoding="utf-8"))
+    names = json.loads((ROOT / "data" / "topic_names.json").read_text(encoding="utf-8"))
+    chunks = json.loads((ROOT / "data" / "chunks.json").read_text(encoding="utf-8"))["chunks"]
+    meta = {r["card_id"]: r for r in json.loads(META.read_text(encoding="utf-8"))["works"]}
+    k = d["k"]
+    # 主題ごとの作品集中度(1 作品に偏っていれば主題ではなく「その作品」である)
+    per = [collections.Counter() for _ in range(k)]
+    for lab, c in zip(d["labels"], chunks):
+        per[lab][c["card_id"]] += 1
+    topics = []
+    for j in range(k):
+        top, cnt = per[j].most_common(1)[0]
+        nm = names["names"][str(j)]
+        topics.append({
+            "id": j, "size": d["sizes"][j], "words": d["words"][j][:8],
+            "name": nm["name"], "desc": nm["desc"],
+            "span": len(per[j]), "top_work": top, "top_share": round(cnt / d["sizes"][j], 3),
+            "reps": [{"w": chunks[i]["card_id"], "p": chunks[i]["para_start"]} for i in d["reps"][j]],
+            "works": [w for w, _ in per[j].most_common(8)],
+        })
+    cps = json.loads((ROOT / "data" / "changepoints.json").read_text(encoding="utf-8"))
+    mn = json.loads((ROOT / "data" / "mentions.json").read_text(encoding="utf-8"))
+    comms = [
+        {k2: v for k2, v in c.items() if k2 != "years"} | {"year_range": (
+            [min(c["years"]), max(c["years"])] if c["years"] else None)}
+        for c in mn["communities"][:14]
+    ]
+    return {
+        "provenance": {"topics": d["provenance"], "names": names["provenance"],
+                       "changepoints": cps["provenance"], "mentions": mn["provenance"]},
+        "k": k, "topics": topics,
+        "by_year": d["by_year"], "by_genre": d["by_genre"],
+        "changepoints": cps["changepoints"], "received": cps["received_periods"],
+        "years": cps["years"], "pc1": [row[0] for row in cps["pc_series"]],
+        "communities": comms,
+        "mention_stats": {"works": mn["n_works"], "edges": mn["n_edges"],
+                          "communities": mn["n_communities"]},
+        "titles": {cid: meta[cid]["title"] for cid in
+                   {t for tt in topics for t in tt["works"]} |
+                   {w for c in comms for w in c["works"]} |
+                   {r["w"] for tt in topics for r in tt["reps"]}},
+    }
+
+
 if __name__ == "__main__":
     WEB.mkdir(parents=True, exist_ok=True)
     (WEB / "corpus_summary.json").write_text(
@@ -200,6 +249,10 @@ if __name__ == "__main__":
     )
     w = works_payload()
     (WEB / "works.json").write_text(json.dumps(w, ensure_ascii=False), encoding="utf-8")
+    tp = topics_payload()
+    if tp:
+        (WEB / "topics.json").write_text(json.dumps(tp, ensure_ascii=False), encoding="utf-8")
+        print(f"主題 {tp['k']} / コミュニティ {len(tp['communities'])} / 変化点 {len(tp['changepoints'])}")
     n = texts()
     size = sum(p.stat().st_size for p in (WEB / "texts").glob("*.json"))
     print(f"works {len(w['works'])} 件 / 本文 {n} 件({size/1e6:.1f} MB)")

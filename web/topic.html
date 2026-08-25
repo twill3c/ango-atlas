@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>安吾アトラス — 主題マップ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="topic">
+<main>
+  <header>
+    <h1><a href="index.html">安吾アトラス</a></h1>
+    <p class="sub">主題マップ — 15,430 の一節を主題で束ね、年代・ジャンル・言及圏から眺める</p>
+  </header>
+
+  <h2>主題の一覧</h2>
+  <p class="note">
+    語は <b>c-TF-IDF の実測</b>。名前と説明は<b>生成物</b>で、代表の一節を読んで付けたもの
+    (本文でも実測値でもない)。「作品固有」は、その主題の一節の半分以上が 1 作品から
+    来ていることを示す — 長編がそのまま一つの塊になっているという意味。
+  </p>
+  <div class="scroll"><table id="topics">
+    <thead><tr><th>主題</th><th class="num">一節</th><th class="num">作品数</th><th>代表語(実測)</th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+
+  <h2>主題の推移</h2>
+  <p class="note">初出年ごとに、その年の一節がどの主題に属したかの割合。上位 8 主題のみ。</p>
+  <div class="scroll"><svg id="flow" viewBox="0 0 900 300" role="img"
+      aria-label="初出年ごとの主題の割合を積み上げた図"></svg></div>
+  <div class="legend" id="flegend"></div>
+
+  <h2>ジャンル × 主題</h2>
+  <p class="note">同じ主題を、小説でも随筆でも書いているかどうかが見える。</p>
+  <div class="scroll"><table id="cross"><tbody></tbody></table></div>
+
+  <h2>文体の転換点</h2>
+  <p class="note" id="cpnote"></p>
+  <div class="scroll"><svg id="cp" viewBox="0 0 900 220" role="img"
+      aria-label="初出年ごとの文体第1主成分と、検出した変化点"></svg></div>
+  <p class="note">
+    帯は通説の時期区分。<b>一致は主張しない</b> — 重なったかどうかを観察として置いてあるだけで、
+    検出器は通説を知らない。罰則の強さは合成データで較正した(純雑音で誤検出 0%、3σ の段差で検出力 100%)。
+  </p>
+
+  <h2>言及の圏</h2>
+  <p class="note" id="mnote"></p>
+  <div id="comms"></div>
+</main>
+<script src="nav.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const COLORS = ["var(--c0)", "var(--c1)", "var(--c2)", "var(--c3)",
+                "var(--c4)", "var(--c5)", "var(--c6)", "var(--c7)"];
+let D = null;
+
+fetch("data/topics.json").then((r) => r.json()).then((d) => {
+  D = d;
+  renderTopics();
+  renderFlow();
+  renderCross();
+  renderChangepoints();
+  renderCommunities();
+});
+
+function renderTopics() {
+  const rows = D.topics.slice().sort((a, b) => b.size - a.size).map((t) => {
+    const own = t.top_share >= 0.5
+      ? ' <span class="chip">作品固有 ' + Math.round(t.top_share * 100) + "%</span>" : "";
+    const reps = t.reps.map((r, i) =>
+      '<a href="reader.html?w=' + r.w + "#p" + r.p + '">代表' + (i + 1) + "</a>").join(" ");
+    return "<tr><td><b>" + esc(t.name) + "</b>" + own +
+      '<div class="note">' + esc(t.desc) + "　" + reps + "</div></td>" +
+      '<td class="num">' + t.size.toLocaleString("ja-JP") + "</td>" +
+      '<td class="num">' + t.span + "</td>" +
+      '<td class="note">' + t.words.map(esc).join(" / ") + "</td></tr>";
+  });
+  $("topics").querySelector("tbody").innerHTML = rows.join("");
+}
+
+function topTopics(n) {
+  return D.topics.slice().sort((a, b) => b.size - a.size).slice(0, n).map((t) => t.id);
+}
+
+function renderFlow() {
+  const ids = topTopics(8);
+  const years = Object.keys(D.by_year).map(Number).sort((a, b) => a - b);
+  const L = 34, R = 8, T = 8, B = 26, W = 900, H = 300;
+  const bw = (W - L - R) / years.length;
+  let svg = "";
+  years.forEach((y, xi) => {
+    const row = D.by_year[String(y)];
+    const total = row.reduce((a, b) => a + b, 0) || 1;
+    let acc = 0;
+    ids.forEach((id, k) => {
+      const v = row[id] / total;
+      if (!v) return;
+      const h = (H - T - B) * v;
+      const yy = H - B - (H - T - B) * (acc + v);
+      acc += v;
+      svg += '<rect x="' + (L + xi * bw).toFixed(1) + '" y="' + yy.toFixed(1) +
+        '" width="' + (bw - 1).toFixed(1) + '" height="' + h.toFixed(1) +
+        '" fill="' + COLORS[k % 8] + '" fill-opacity=".85"><title>' + y + " " +
+        esc(D.topics.find((t) => t.id === id).name) + " " + Math.round(v * 100) + "%</title></rect>";
+    });
+    if (y % 5 === 0)
+      svg += '<text x="' + (L + xi * bw + bw / 2).toFixed(1) + '" y="' + (H - B + 14) +
+        '" font-size="10" text-anchor="middle" fill="currentColor" font-family="system-ui">' + y + "</text>";
+  });
+  $("flow").innerHTML = svg;
+  $("flegend").innerHTML = ids.map((id, k) =>
+    '<span><i class="dot" style="background:' + COLORS[k % 8] + '"></i>' +
+    esc(D.topics.find((t) => t.id === id).name) + "</span>").join("");
+}
+
+function renderCross() {
+  const ids = topTopics(8);
+  const genres = Object.keys(D.by_genre);
+  let head = "<tr><th>ジャンル</th>" + ids.map((id) =>
+    "<th>" + esc(D.topics.find((t) => t.id === id).name) + "</th>").join("") + "</tr>";
+  const rows = genres.map((g) => {
+    const row = D.by_genre[g];
+    const total = row.reduce((a, b) => a + b, 0) || 1;
+    return "<tr><th>" + esc(g) + "</th>" + ids.map((id) => {
+      const v = row[id] / total;
+      const bg = v > 0.02 ? ' style="background:color-mix(in srgb, var(--accent) ' +
+        Math.round(Math.min(v * 260, 70)) + '%, transparent)"' : "";
+      return '<td class="num"' + bg + ">" + (v ? Math.round(v * 100) + "%" : "—") + "</td>";
+    }).join("") + "</tr>";
+  });
+  $("cross").innerHTML = head + rows.join("");
+}
+
+function renderChangepoints() {
+  const years = D.years, pc = D.pc1;
+  const L = 34, R = 8, T = 12, B = 26, W = 900, H = 220;
+  const lo = Math.min(...pc), hi = Math.max(...pc);
+  const px = (i) => L + (i / (years.length - 1)) * (W - L - R);
+  const py = (v) => H - B - ((v - lo) / (hi - lo || 1)) * (H - T - B);
+  let svg = "";
+  D.received.forEach((r) => {
+    const i = years.indexOf(r.year);
+    if (i < 0) return;
+    svg += '<rect x="' + (px(i) - 6) + '" y="' + T + '" width="12" height="' + (H - T - B) +
+      '" fill="currentColor" fill-opacity=".07"><title>通説: ' + esc(r.label) + "</title></rect>";
+  });
+  svg += '<polyline fill="none" stroke="var(--accent2)" stroke-width="1.6" points="' +
+    pc.map((v, i) => px(i).toFixed(1) + "," + py(v).toFixed(1)).join(" ") + '"/>';
+  D.changepoints.forEach((c) => {
+    const i = years.indexOf(c.year);
+    svg += '<line x1="' + px(i) + '" y1="' + T + '" x2="' + px(i) + '" y2="' + (H - B) +
+      '" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="3 3"/>' +
+      '<text x="' + px(i) + '" y="' + (T + 10) + '" font-size="10" text-anchor="middle" ' +
+      'fill="var(--accent)" font-family="system-ui">' + c.year + "</text>";
+  });
+  years.forEach((y, i) => {
+    if (y % 5 === 0)
+      svg += '<text x="' + px(i) + '" y="' + (H - B + 14) + '" font-size="10" text-anchor="middle" ' +
+        'fill="currentColor" font-family="system-ui">' + y + "</text>";
+  });
+  $("cp").innerHTML = svg;
+  const m = D.changepoints.filter((c) => c.received_nearby.length).length;
+  $("cpnote").textContent =
+    "初出年ごとの文体特徴量(57 次元)の平均を主成分に落とし、PELT で変化点を推定した。" +
+    "検出 " + D.changepoints.length + " 件(" + D.changepoints.map((c) => c.year).join("・") +
+    ")。うち通説の時期区分の近傍にあるのは " + m + " 件。";
+}
+
+function renderCommunities() {
+  const s = D.mention_stats;
+  $("mnote").textContent =
+    "固有名詞の共起で作品どうしを結び(" + s.works + " 作品・" + s.edges.toLocaleString("ja-JP") +
+    " 辺)、Louvain でコミュニティを取った。辺は本文実測の共起のみで、推定した辺は無い。" +
+    "全 " + s.communities + " 群のうち大きい順に " + D.communities.length + " 群。";
+  $("comms").innerHTML = D.communities.map((c) => {
+    const yr = c.year_range ? c.year_range[0] + "–" + c.year_range[1] : "年不明";
+    return '<div style="margin:0 0 1rem"><div><b>' + c.names.slice(0, 6).map(esc).join(" / ") +
+      '</b> <span class="note">(' + c.size + " 作品・" + yr + ")</span></div>" +
+      '<div class="note">' + c.works.slice(0, 6).map((w) =>
+        '<a href="reader.html?w=' + w + '">' + esc(D.titles[w] || w) + "</a>").join(" ・ ") +
+      "</div></div>";
+  }).join("");
+}
+</script>
+</body>
+</html>
