@@ -108,3 +108,15 @@ Conventional Commits(feat/fix/test/docs/refactor/chore)。スキャフォール�
   O-1(二重版 50 組が互いに最近傍)が崩れていないかを必ず確認する
 - クラスタリングは numpy だけで実装している(scipy/sklearn 非依存)。seed は `cluster.SEED`
 - ブラウザを開けないので `node tests/smoke_pages.js` が実データでの描画確認を兼ねる
+
+### 埋め込み(L4 実測 2026-08-25)
+
+- 埋め込みは**プロジェクト専用の venv**(`.venv`)で回す。共有 venv に torch を入れない。
+  `.venv/Scripts/python.exe -m pipeline.embed --model ruri --input raw --batch 32`
+- **埋め込み実行中に重い前景処理を走らせない**。CPU を奪い合うと 12 倍遅くなり、
+  残り時間表示を見て設計を疑う羽目になる(実際に一度やった)
+- 採用モデルは `ruri-v3-30m`・**原文入力**。仮名遣いの正規化(`to_modern`)は
+  埋め込みには効かない — 二重版チャンクは原文のままで R@1 1.000
+- 圧縮は**中心化しない**打ち切り SVD + float16。中心化すると内積が保たれない
+- モデル・チャンク・前処理を変えたら `pipeline.eval_embed` と `pipeline.compress` を
+  回し、`docs/embed_eval.md` と `docs/compression.md` を再生成する

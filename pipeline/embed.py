@@ -71,15 +71,27 @@ class Encoder:
         return np.concatenate(out, axis=0)
 
 
-def passages(mode: str) -> tuple[list[str], list[int]]:
-    """埋め込む文字列と、対応するチャンク番号。"""
+def passages(mode: str, context: bool = True, subset: set[int] | None = None
+             ) -> tuple[list[str], list[int]]:
+    """埋め込む文字列と、対応するチャンク番号。
+
+    context=False は較正用の対照条件。作品名・ジャンル・初出年の前置きを付けずに
+    本文だけを埋め込む(小さいモデルでは前置きが本文を押しのける恐れがあるため)。
+    subset を渡すと、そのチャンク番号だけを対象にする(部分実験用)。
+    """
     meta = {r["card_id"]: r for r in json.loads(META.read_text(encoding="utf-8"))["works"]}
     chunks = json.loads(CHUNKS.read_text(encoding="utf-8"))["chunks"]
     texts, ids = [], []
     for c in chunks:
+        if subset is not None and c["i"] not in subset:
+            continue
         r = meta[c["card_id"]]
         body = c["text"] if mode == "raw" else kf.to_modern(c["text"])
-        texts.append(ck.with_context({"text": body}, r["title"], r["genre"], r["pub_year"]))
+        texts.append(
+            ck.with_context({"text": body}, r["title"], r["genre"], r["pub_year"])
+            if context
+            else body
+        )
         ids.append(c["i"])
     return texts, ids
 
@@ -90,11 +102,17 @@ if __name__ == "__main__":
     ap.add_argument("--input", choices=("raw", "modern"), default="raw")
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--no-context", action="store_true",
+                    help="較正の対照条件: 作品名等の前置きを付けない")
+    ap.add_argument("--subset", type=str, default=None,
+                    help="対象チャンク番号を書いた JSON(部分実験用)")
+    ap.add_argument("--tag", type=str, default=None, help="出力名の上書き")
     a = ap.parse_args()
 
     import os
     torch.set_num_threads(os.cpu_count() or 4)
-    texts, ids = passages(a.input)
+    sub = set(json.loads(Path(a.subset).read_text(encoding="utf-8"))) if a.subset else None
+    texts, ids = passages(a.input, context=not a.no_context, subset=sub)
     if a.limit:
         texts, ids = texts[: a.limit], ids[: a.limit]
     enc = Encoder(a.model)
@@ -108,7 +126,7 @@ if __name__ == "__main__":
         print(f"  {done}/{len(texts)} ({el:.0f}s, 残り {el/done*(len(texts)-done):.0f}s)", flush=True)
     V = np.concatenate(vecs, axis=0).astype(np.float32)
     OUTDIR.mkdir(parents=True, exist_ok=True)
-    tag = f"{a.model}_{a.input}"
+    tag = a.tag or f"{a.model}_{a.input}" + ("_noctx" if a.no_context else "")
     np.save(OUTDIR / f"{tag}.npy", V)
     (OUTDIR / f"{tag}.json").write_text(
         json.dumps({"model": MODELS[a.model]["repo"], "input": a.input,

@@ -1,0 +1,131 @@
+{
+ "ruri_raw": {
+  "n_vectors": 15430,
+  "orig_dims": 256,
+  "probe": 400,
+  "topk": 50,
+  "rows": [
+   {
+    "dims": 128,
+    "center": false,
+    "dtype": "float32",
+    "recall@10": 0.9228,
+    "top1_same": 0.9025,
+    "kendall_tau": 0.8286,
+    "bytes_per_vec": 512,
+    "total_mb": 7.9
+   },
+   {
+    "dims": 128,
+    "center": false,
+    "dtype": "float16",
+    "recall@10": 0.9228,
+    "top1_same": 0.905,
+    "kendall_tau": 0.8286,
+    "bytes_per_vec": 256,
+    "total_mb": 3.95
+   },
+   {
+    "dims": 128,
+    "center": false,
+    "dtype": "int8",
+    "recall@10": 0.9145,
+    "top1_same": 0.885,
+    "kendall_tau": 0.8118,
+    "bytes_per_vec": 128,
+    "total_mb": 1.98
+   },
+   {
+    "dims": 128,
+    "center": false,
+    "dtype": "int8_row",
+    "recall@10": 0.9135,
+    "top1_same": 0.88,
+    "kendall_tau": 0.8121,
+    "bytes_per_vec": 128,
+    "total_mb": 1.98
+   },
+   {
+    "dims": 192,
+    "center": false,
+    "dtype": "float32",
+    "recall@10": 0.992,
+    "top1_same": 0.99,
+    "kendall_tau": 0.983,
+    "bytes_per_vec": 768,
+    "total_mb": 11.85
+   },
+   {
+    "dims": 192,
+    "center": false,
+    "dtype": "float16",
+    "recall@10": 0.9925,
+    "top1_same": 0.9925,
+    "kendall_tau": 0.9831,
+    "bytes_per_vec": 384,
+    "total_mb": 5.93
+   },
+   {
+    "dims": 192,
+    "center": false,
+    "dtype": "int8",
+    "recall@10": 0.9578,
+    "top1_same": 0.9625,
+    "kendall_tau": 0.9081,
+    "bytes_per_vec": 192,
+    "total_mb": 2.96
+   },
+   {
+    "dims": 192,
+    "center": false,
+    "dtype": "int8_row",
+    "recall@10": 0.9605,
+    "top1_same": 0.975,
+    "kendall_tau": 0.9121,
+    "bytes_per_vec": 192,
+    "total_mb": 2.96
+   },
+   {
+    "dims": 256,
+    "center": false,
+    "dtype": "float32",
+    "recall@10": 1.0,
+    "top1_same": 1.0,
+    "kendall_tau": 1.0,
+    "bytes_per_vec": 1024,
+    "total_mb": 15.8
+   },
+   {
+    "dims": 256,
+    "center": false,
+    "dtype": "float16",
+    "recall@10": 0.9993,
+    "top1_same": 1.0,
+    "kendall_tau": 0.9987,
+    "bytes_per_vec": 512,
+    "total_mb": 7.9
+   },
+   {
+    "dims": 256,
+    "center": false,
+    "dtype": "int8",
+    "recall@10": 0.9583,
+    "top1_same": 0.9625,
+    "kendall_tau": 0.9089,
+    "bytes_per_vec": 256,
+    "total_mb": 3.95
+   },
+   {
+    "dims": 256,
+    "center": false,
+    "dtype": "int8_row",
+    "recall@10": 0.9583,
+    "top1_same": 0.975,
+    "kendall_tau": 0.9134,
+    "bytes_per_vec": 256,
+    "total_mb": 3.95
+   }
+  ],
+  "tag": "ruri_raw"
+ }
+}
