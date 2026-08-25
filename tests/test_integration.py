@@ -26,12 +26,14 @@ def test_t701_every_page_loads_the_shared_chrome():
 
 @pytest.mark.unit
 def test_t702_footer_has_the_five_links():
-    """T-702 / F-24: フッタは © / GitHub / 歩き方 / 設計図 / App Menu の 5 つ。
+    """T-702 / F-24: フッタは MIT License © / GitHub / 歩き方 / 設計図 / App Menu の 5 つ。
 
     kiko-atlas 以降のフリート共通の並び。歩き方・設計図は Artifact の URL。
     """
     nav = (WEB / "nav.js").read_text(encoding="utf-8")
-    assert "&copy; 2026 twill3c" in nav
+    assert "github.com/twill3c/ango-atlas/blob/main/LICENSE" in nav
+    assert "MIT License" in nav
+    assert "&copy; 2026 坂田哲朗" in nav
     assert "github.com/twill3c/ango-atlas" in nav
     assert "app-menu-amber.vercel.app" in nav
     for anchor in ("link-howto", "link-design"):
