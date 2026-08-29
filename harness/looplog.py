@@ -445,6 +445,10 @@ def cmd_append(args) -> int:
         print("記録拒否 — スキーマ違反:")
         for e in errs:
             print(f"  - {e}")
+        # 受け取れた key を必ず添える(HC-061)。「値が足りない」のか
+        # 「渡し方が落ちた」のかを、メッセージだけで見分けられるようにする
+        keys = sorted(rec["data"]) if isinstance(rec["data"], dict) else []
+        print(f"  受け取った data の key({len(keys)} 件): {', '.join(keys) if keys else '(なし)'}")
         return 1
 
     # 完了済みループへの追記ガード(LL-09)と correction の追記時検査(LL-08)
@@ -663,7 +667,10 @@ def main(argv=None) -> int:
     ap.add_argument("--event", required=True, choices=sorted(EVENT_SPECS))
     ap.add_argument("--project", help="省略時は主リポジトリ名を自動検出(worktree 実行にも対応 — HC-008)")
     ap.add_argument("--ts", help="省略時は現在時刻(JST)")
-    ap.add_argument("--data", nargs="*", metavar="key=value")
+    # --data の繰り返し指定を累積させる(HC-061)。nargs="*" だと最後の 1 組しか渡らず、
+    # しかも返るのは「必須フィールド欠落」なので、原因(渡し方)を指さない。
+    # nargs="+" により、値を伴わない --data は構文エラーになる(従来は黙って空リスト)。
+    ap.add_argument("--data", nargs="+", action="extend", metavar="key=value")
     ap.set_defaults(func=cmd_append)
 
     vp = sub.add_parser("validate", help="全ログをスキーマ・規則検証する(CI 用)")
