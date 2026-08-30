@@ -18,6 +18,10 @@ Python 標準ライブラリのみで動作する。`looplog.py` が全プロジ
   - `.text-hygiene-ignore` に 1 行 1 パターン(部分一致)を書くと、その経路を飛ばす
   - 行内に `text-hygiene:allow` があればその行を飛ばす(記述例のため)
 
+**この検査器自身も走査対象である。** 字種の正規表現と自己対照は当然この検査に引っかかるので、
+該当行に `text-hygiene:allow` を付けてある。`harness/` を丸ごと除外しないのは、
+そこに置く道具のソースにも混入が起きうるため。
+
 終了コード: 違反 0 件で 0、1 件以上で 1。検査器の自己対照に失敗したら 2。
 """
 
@@ -48,8 +52,8 @@ SKIP_DIRS = {
     "coverage", ".pytest_cache", "renv", "tests", "test", "docs", "__tests__",
 }
 
-CYRILLIC = re.compile(r"[Ѐ-ӿԀ-ԯ]")
-HANGUL = re.compile(r"[가-힯ᄀ-ᇿ㄰-㆏]")
+CYRILLIC = re.compile(r"[Ѐ-ӿԀ-ԯ]")  # text-hygiene:allow
+HANGUL = re.compile(r"[가-힯ᄀ-ᇿ㄰-㆏]")  # text-hygiene:allow
 ALLOWED_CONTROL = {9, 10, 13}  # タブ・改行・復帰
 ALLOW_MARKER = "text-hygiene:allow"
 
@@ -80,8 +84,8 @@ def self_test() -> list[str]:
     errs: list[str] = []
     nul = chr(0)
     positives = [
-        ("измерение を含む文", "キリル文字"),
-        ("あれば그 集合だけが", "ハングル"),
+        ("измерение を含む文", "キリル文字"),  # text-hygiene:allow
+        ("あれば그 集合だけが", "ハングル"),  # text-hygiene:allow
         (f'const key = tool + "{nul}" + rest;', "制御文字"),
         (f"末尾に{chr(127)}が居る", "制御文字"),
     ]
@@ -99,9 +103,9 @@ def self_test() -> list[str]:
         if got:
             errs.append(f"陰性対照を撃った: {text[:24]} → {got}")
     # allow 印は効くが、印の無い同じ行は捕まる
-    if scan_line(f"измерение {ALLOW_MARKER}"):
+    if scan_line(f"измерение {ALLOW_MARKER}"):  # text-hygiene:allow
         errs.append("allow 印が効いていない")
-    if not scan_line("измерение"):
+    if not scan_line("измерение"):  # text-hygiene:allow
         errs.append("allow 印が広すぎる")
     return errs
 

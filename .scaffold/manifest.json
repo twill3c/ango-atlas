@@ -1,5 +1,5 @@
 {
-  "scaffold_version": "1.21.0",
+  "scaffold_version": "1.21.1",
   "registry_hint": "C:/_ClaudeCode/harness-kit/scaffold-kit/registry",
   "components": [
     {
@@ -76,8 +76,8 @@
       "id": "text_hygiene",
       "target": "harness/text_hygiene.py",
       "source": "files/harness/text_hygiene.py",
-      "installed_version": "1.20.0",
-      "installed_sha256": "020f576abfbedc8fe78d5662a74cc1586305124dfda24716398e7da60d45e2e7"
+      "installed_version": "1.20.1",
+      "installed_sha256": "43fa9d7157a84ca37108acf4d85e11a39c7f1239c218e18cd790a9ceffab9d9e"
     }
   ],
   "profiles": []
