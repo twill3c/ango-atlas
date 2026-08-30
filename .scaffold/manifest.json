@@ -1,5 +1,5 @@
 {
-  "scaffold_version": "1.19.0",
+  "scaffold_version": "1.20.0",
   "registry_hint": "C:/_ClaudeCode/harness-kit/scaffold-kit/registry",
   "components": [
     {
@@ -7,8 +7,8 @@
       "id": "agents_core",
       "target": "AGENTS.md",
       "source": "blocks/agents_core.md",
-      "installed_version": "1.19.0",
-      "installed_sha256": "8b70e7df11578da2b2266985d50a28694542f270e302f68b6b1e9e6e179b6264"
+      "installed_version": "1.20.0",
+      "installed_sha256": "fa890da178a6d5626c38393c959b52ee1f43d0fc43c3976c1415ecf272304c5b"
     },
     {
       "type": "file",
@@ -70,6 +70,14 @@
       "target": ".wt/gate.json",
       "source": "templates/gate.json.tmpl",
       "installed_version": "1.12.0"
+    },
+    {
+      "type": "file",
+      "id": "text_hygiene",
+      "target": "harness/text_hygiene.py",
+      "source": "files/harness/text_hygiene.py",
+      "installed_version": "1.20.0",
+      "installed_sha256": "020f576abfbedc8fe78d5662a74cc1586305124dfda24716398e7da60d45e2e7"
     }
   ],
   "profiles": []
