@@ -76,3 +76,13 @@ footer a { margin: 0 .45rem; }
 .findlink:hover { opacity: 1; color: var(--accent); }
 #results > div { border-left: 2px solid var(--line); padding-left: .7rem; }
 button[aria-current="page"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* fleet: フッタ区切り。規約の並び「MIT License © 2026 坂田哲朗 ・ GitHub ・ … 」の「・」。
+   CSS の ::before では innerText に出ず検品器から見えないので、文字として置いてある。
+   ここでは色と詰めだけを与える(flex の gap があるぶん、左右を負で詰める)。 */
+.fsep {
+  color: currentColor;
+  opacity: 0.45;
+  margin: 0 -0.3rem;
+  user-select: none;
+}

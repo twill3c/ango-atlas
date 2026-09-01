@@ -17,9 +17,13 @@
     "beforeend",
     '<footer><a href="https://github.com/twill3c/ango-atlas/blob/main/LICENSE">MIT License</a>' +
       '<span>&copy; 2026 坂田哲朗</span>' +
+      '<span class="fsep">・</span>' +
       '<a href="https://github.com/twill3c/ango-atlas">GitHub</a>' +
+      '<span class="fsep">・</span>' +
       '<a id="link-howto" href="https://claude.ai/code/artifact/f036d15f-ee37-4ef5-b6bf-d9389dfd1acc">歩き方</a>' +
+      '<span class="fsep">・</span>' +
       '<a id="link-design" href="https://claude.ai/code/artifact/074115c0-6153-4e31-bb1e-516e0987c7f2">設計図</a>' +
+      '<span class="fsep">・</span>' +
       '<a href="https://app-menu-amber.vercel.app/">App Menu</a></footer>'
   );
 })();
